@@ -65,7 +65,7 @@ RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-h
 
 # Rust
 RUN mkdir -p $RUSTUP_HOME \
-&& mkdir -p $CARGO_HOME
+&& mkdir -p $CARGO_HOME \
 && apt install -y pkg-config libssl-dev \
 && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --no-modify-path --default-toolchain stable \
 && rustup component add rust-src --toolchain stable \
