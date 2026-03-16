@@ -20,7 +20,7 @@ RUN mkdir -p $HOME/.env/lib \
 && echo "export GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct" >> /etc/profile \
 && echo "export PATH=$GOROOT/bin:$GOPATH/bin:$PATH" >> /etc/profile \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $HOME/.env/lib/golang \
-&& source /etc/profile \
+&& . /etc/profile \
 && go install golang.org/x/tools/gopls@latest \
 # flutter
 && apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-headless \
