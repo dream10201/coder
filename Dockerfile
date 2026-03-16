@@ -1,7 +1,7 @@
 FROM docker.io/codercom/code-server:latest
 USER 0:0
 ENV HOME=/root \
-CODEER_LIB=/env/lib
+CODER_LIB=/env/lib
 WORKDIR /root
 
 # Go
