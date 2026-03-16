@@ -74,7 +74,7 @@ RUN mkdir -p $RUSTUP_HOME \
 
 # Node js
 RUN mkdir -p $NVM_DIR \
-&& curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
-&& nvm install 25 \
-&& npm install -g pnpm \
-&& npm config set registry https://registry.npmmirror.com/
+&& curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+# && nvm install 25 \
+# && npm install -g pnpm \
+# && npm config set registry https://registry.npmmirror.com/
