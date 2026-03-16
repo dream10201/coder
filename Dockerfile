@@ -19,8 +19,8 @@ ENV PATH=$CODER_LIB/flutter/bin:$PATH
 RUN echo 'export PATH=$CODER_LIB/flutter/bin:$PATH' >> /etc/bash.bashrc
 
 # Android
-ENV ANDROID_HOME=$CODER_LIB/android \
-ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
+ENV ANDROID_HOME=$CODER_LIB/android
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
 ENV PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH
 RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' >> /etc/bash.bashrc
 
@@ -31,8 +31,8 @@ ENV PATH="$CARGO_HOME/bin:${PATH}"
 RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 
 # Nodejs
-ENV NVM_DIR=$CODER_LIB/lib/nvm
-RUN echo 'export NVM_DIR=$CODER_LIB/lib/nvm' >> /etc/bash.bashrc
+ENV NVM_DIR=$CODER_LIB/nvm
+RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
 
 RUN mkdir -p $CODER_LIB
 RUN apt update
@@ -54,8 +54,8 @@ RUN mkdir -p $CODER_LIB/golang/go \
 RUN mkdir -p $CODER_LIB/android \
 && curl -sL $(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1) | python3 -c "import sys,zipfile,io,shutil,os;z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));z.extractall('/tmp');dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest');os.makedirs(os.path.dirname(dest),exist_ok=True);shutil.move('/tmp/cmdline-tools',dest)" \
 && chmod +x $CODER_LIB/android/cmdline-tools/latest/bin/*
-# && yes | sdkmanager --sdk_root=$CODER_LIB/android "platform-tools" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
-# && yes | sdkmanager --licenses
+&& yes | sdkmanager --sdk_root=$CODER_LIB/android "platform-tools" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
+&& yes | sdkmanager --licenses
 
 # flutter
 RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-headless \
@@ -75,6 +75,6 @@ RUN mkdir -p $RUSTUP_HOME \
 # Node js
 RUN mkdir -p $NVM_DIR \
 && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
-# && nvm install 25 \
-# && npm install -g pnpm \
-# && npm config set registry https://registry.npmmirror.com/
+&& nvm install 25 \
+&& npm install -g pnpm \
+&& npm config set registry https://registry.npmmirror.com/
