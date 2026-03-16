@@ -45,6 +45,7 @@ RUN mkdir -p $HOME/.env/lib \
 # Rust
 && apt install -y pkg-config libssl-dev \
 && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --default-toolchain stable \
+&& \. "$HOME/.cargo/env" \
 && rustup component add rust-src --toolchain stable \
 && rustup component add rust-analyzer --toolchain stable \
 # Node js
