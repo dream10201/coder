@@ -37,7 +37,7 @@ RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
 RUN mkdir -p $CODER_LIB
 RUN apt update
 RUN apt remove vim-* -y \
-&& apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git
+&& apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless
 RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' /etc/locale.gen \
@@ -58,7 +58,7 @@ RUN mkdir -p $CODER_LIB/android \
 && yes | sdkmanager --licenses
 
 # flutter
-RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-headless \
+RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 && touch /.dockerenv \
 && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "import sys,json; d=json.load(sys.stdin); h=d['current_release']['stable']; r=next(x for x in d['releases'] if x['hash']==h); print(d['base_url']+'/'+r['archive'])" | xargs curl -L | tar xJ -C $CODER_LIB/ \
 && git config --global --add safe.directory  $CODER_LIB/flutter \
