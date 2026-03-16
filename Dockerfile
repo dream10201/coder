@@ -53,7 +53,7 @@ RUN mkdir -p $CODER_LIB/golang/go \
 # Android
 RUN mkdir -p $CODER_LIB/android \
 && curl -sL $(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1) | python3 -c "import sys,zipfile,io,shutil,os;z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));z.extractall('/tmp');dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest');os.makedirs(os.path.dirname(dest),exist_ok=True);shutil.move('/tmp/cmdline-tools',dest)" \
-&& chmod +x $CODER_LIB/android/cmdline-tools/latest/bin/*
+&& chmod +x $CODER_LIB/android/cmdline-tools/latest/bin/* \
 && yes | sdkmanager --sdk_root=$CODER_LIB/android "platform-tools" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
 && yes | sdkmanager --licenses
 
@@ -74,7 +74,7 @@ RUN mkdir -p $RUSTUP_HOME \
 
 # Node js
 RUN mkdir -p $NVM_DIR \
-&& curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+&& curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
 && nvm install 25 \
 && npm install -g pnpm \
 && npm config set registry https://registry.npmmirror.com/
