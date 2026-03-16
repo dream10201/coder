@@ -1,0 +1,87 @@
+name: build
+
+on:
+  schedule:
+    - cron: '0 10 * * 0'
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      contents: write
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 1. 获取 code-server 最新版本号
+      - name: Fetch latest code-server version
+        id: codeserver
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/coder/code-server/releases/latest | jq -r '.tag_name')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+
+      # 2. 读取本地保存的版本号
+      - name: Read local version
+        id: localver
+        run: |
+          if [ -f .github/version ]; then
+            LOCAL=$(cat .github/version)
+          else
+            LOCAL="none"
+          fi
+          echo "local=$LOCAL" >> $GITHUB_OUTPUT
+
+      # 3. 比较版本号，如果相同则跳过构建
+      - name: Check version difference
+        run: |
+          echo "Latest: ${{ steps.codeserver.outputs.latest }}"
+          echo "Local:  ${{ steps.localver.outputs.local }}"
+          if [ "${{ steps.codeserver.outputs.latest }}" = "${{ steps.localver.outputs.local }}" ]; then
+            echo "No new version. Exiting."
+            exit 0
+          fi
+
+      # 4. 保存新版本号
+      - name: Save new version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ steps.codeserver.outputs.latest }}" > .github/version
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .github/version
+          git commit -m "Update version to ${{ steps.codeserver.outputs.latest }}"
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          git push origin master
+
+      # 5. Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 6. Login Docker Hub
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 7. Login GHCR
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
+
+      # 8. 构建并推送
+      - name: Release and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ghcr.io/dream10201/coder:latest
