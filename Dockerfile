@@ -28,6 +28,7 @@ RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' 
 ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
 CARGO_HOME=$CODER_LIB/rust/cargo
 ENV PATH="$CARGO_HOME/bin:${PATH}"
+RUN echo '. "/env/lib/rust/cargo/env"' >> /etc/bash.bashrc
 RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 
 # Nodejs
@@ -77,6 +78,7 @@ RUN mkdir -p $RUSTUP_HOME \
 # Node js
 RUN mkdir -p $NVM_DIR \
 && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
+&& [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
 && nvm install 25 \
 && npm install -g pnpm \
 && npm config set registry https://registry.npmmirror.com/
