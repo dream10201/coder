@@ -26,6 +26,7 @@ RUN mkdir -p $HOME/.env/lib \
 && apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-headless \
 && touch /.dockerenv \
 && mkdir -p $HOME/.env/lib/flutter \
+&& curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "import sys,json; d=json.load(sys.stdin); h=d['current_release']['stable']; r=next(x for x in d['releases'] if x['hash']==h); print(d['base_url']+'/'+r['archive'])" | xargs curl -L | tar xJ -C $HOME/.env/lib/
 && echo "export FLUTTER_ROOT_USAGE_WARNING=false" >> /etc/profile \
 && echo "export PUB_HOSTED_URL=https://pub.flutter-io.cn" >> /etc/profile \
 && echo "export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn" >> /etc/profile \
