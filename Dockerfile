@@ -3,6 +3,24 @@ USER 0:0
 ENV HOME=/root
 WORKDIR /root
 
+# Go
+ENV GOROOT=$HOME/.env/lib/golang/go \
+GOPATH=$HOME/.env/lib/golang/gopath \
+GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+
+# Flutter
+ENV FLUTTER_ROOT_USAGE_WARNING=false \
+PUB_HOSTED_URL=https://pub.flutter-io.cn \
+FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
+PATH=$HOME/.env/lib/flutter/bin:$PATH
+
+# Android
+ENV ANDROID_HOME=$HOME/.env/lib/android \
+ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/bin \
+PATH=$PATH:$ANDROID_HOME/platform-tools
+
 RUN mkdir -p $HOME/.env/lib \
 && apt update && apt upgrade -y \
 && apt remove vim-* -y \
@@ -15,28 +33,15 @@ RUN mkdir -p $HOME/.env/lib \
 # Go
 && mkdir -p $HOME/.env/lib/golang/go \
 && mkdir -p $HOME/.env/lib/golang/gopath \
-&& echo "export GOROOT=$HOME/.env/lib/golang/go" >> /etc/profile \
-&& echo "export GOPATH=$HOME/.env/lib/golang/gopath" >> /etc/profile \
-&& echo "export GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct" >> /etc/profile \
-&& echo "export PATH=$GOROOT/bin:$GOPATH/bin:$PATH" >> /etc/profile \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $HOME/.env/lib/golang \
-&& . /etc/profile \
 && go install golang.org/x/tools/gopls@latest \
 # flutter
 && apt-get install -y curl git unzip xz-utils zip libglu1-mesa openjdk-17-jdk-headless \
 && touch /.dockerenv \
 && mkdir -p $HOME/.env/lib/flutter \
 && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "import sys,json; d=json.load(sys.stdin); h=d['current_release']['stable']; r=next(x for x in d['releases'] if x['hash']==h); print(d['base_url']+'/'+r['archive'])" | xargs curl -L | tar xJ -C $HOME/.env/lib/ \
-&& echo "export FLUTTER_ROOT_USAGE_WARNING=false" >> /etc/profile \
-&& echo "export PUB_HOSTED_URL=https://pub.flutter-io.cn" >> /etc/profile \
-&& echo "export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn" >> /etc/profile \
-&& echo "export PATH=$HOME/.env/lib/flutter/bin:$PATH" >> /etc/profile \
 # Android
 && mkdir -p $HOME/.env/lib/android \
-&& echo "export ANDROID_HOME=$HOME/.env/lib/android" >> /etc/profile \
-&& echo "export ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest" >> /etc/profile \
-&& echo "export export PATH=$PATH:$ANDROID_SDK_ROOT/bin" >> /etc/profile \
-&& echo "export PATH=$PATH:$ANDROID_HOME/platform-tools" >> /etc/profile \
 # Rust
 && apt install -y pkg-config libssl-dev \
 && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --default-toolchain stable \
