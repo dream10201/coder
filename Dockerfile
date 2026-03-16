@@ -33,8 +33,8 @@ RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 # Nodejs
 ENV NVM_DIR=$CODER_LIB/nvm
 RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
-RUN '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
-RUN '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
 
 RUN mkdir -p $CODER_LIB
 RUN apt update
