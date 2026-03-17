@@ -10,6 +10,15 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen
 RUN locale-gen
+RUN echo "shopt -s checkwinsize" >> /etc/bash.bashrc \
+&& echo "export TERM=xterm-256color" >> /etc/bash.bashrc \
+&& echo "export LS_OPTIONS='--color=auto'" >> /etc/bash.bashrc \
+&& echo 'eval "`dircolors`"' >> /etc/bash.bashrc \
+&& echo 'alias ls="ls $LS_OPTIONS"' >> /etc/bash.bashrc \
+&& echo 'alias ll="ls $LS_OPTIONS -lhA --time-style \'+%Y/%m/%d %H:%M:%S\'"' >> /etc/bash.bashrc \
+&& echo ". /etc/bash_completion" >> /etc/bash.bashrc \
+&& echo "PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /etc/bash.bashrc
+
 RUN apt update
 RUN apt remove vim-* -y \
 && apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless
