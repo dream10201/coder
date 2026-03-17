@@ -14,10 +14,10 @@ RUN echo "shopt -s checkwinsize" >> /etc/bash.bashrc \
 && echo "export TERM=xterm-256color" >> /etc/bash.bashrc \
 && echo "export LS_OPTIONS='--color=auto'" >> /etc/bash.bashrc \
 && echo 'eval "`dircolors`"' >> /etc/bash.bashrc \
-&& echo 'alias ls="ls \$LS_OPTIONS"' >> /etc/bash.bashrc \
-&& echo "alias ll='ls \$LS_OPTIONS -lhA --time-style \"+%Y/%m/%d %H:%M:%S\"'" >> /etc/bash.bashrc \
+&& echo 'alias ls="ls $LS_OPTIONS"' >> /etc/bash.bashrc \
+&& echo "alias ll='ls $LS_OPTIONS -lhA --time-style \"+%Y/%m/%d %H:%M:%S\"'" >> /etc/bash.bashrc \
 && echo ". /etc/bash_completion" >> /etc/bash.bashrc \
-&& echo "PS1='\${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /etc/bash.bashrc
+&& echo "PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /etc/bash.bashrc
 
 RUN apt update
 RUN apt remove vim-* -y \
@@ -30,7 +30,7 @@ ENV GOROOT=$CODER_LIB/go \
 GOPATH=$HOME/.gopath \
 GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
 ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
-RUN echo 'export PATH=\$GOROOT/bin:\$GOPATH/bin:\$PATH' >> /etc/bash.bashrc
+RUN echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $GOPATH \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB \
@@ -40,7 +40,7 @@ RUN mkdir -p $GOPATH \
 ENV ANDROID_HOME=$CODER_LIB/android
 ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
 ENV PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH
-RUN echo 'export PATH=\$ANDROID_HOME/platform-tools:\$ANDROID_SDK_ROOT/bin:\$PATH' >> /etc/bash.bashrc
+RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $CODER_LIB/android \
 && curl -sL $(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1) | python3 -c "import sys,zipfile,io,shutil,os;z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));z.extractall('/tmp');dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest');os.makedirs(os.path.dirname(dest),exist_ok=True);shutil.move('/tmp/cmdline-tools',dest)" \
@@ -53,7 +53,7 @@ ENV FLUTTER_ROOT_USAGE_WARNING=false \
 PUB_HOSTED_URL=https://pub.flutter-io.cn \
 FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
 ENV PATH=$CODER_LIB/flutter/bin:$PATH
-RUN echo 'export PATH=\$CODER_LIB/flutter/bin:\$PATH' >> /etc/bash.bashrc
+RUN echo 'export PATH=$CODER_LIB/flutter/bin:$PATH' >> /etc/bash.bashrc
 
 RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 && touch /.dockerenv \
@@ -65,8 +65,8 @@ RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
 CARGO_HOME=$CODER_LIB/rust/cargo
 ENV PATH="$CARGO_HOME/bin:${PATH}"
-RUN echo '. "\$CARGO_HOME/env"' >> /etc/bash.bashrc
-RUN echo 'export PATH=\$CARGO_HOME/bin:\$PATH' >> /etc/bash.bashrc
+RUN echo '. "$CARGO_HOME/env"' >> /etc/bash.bashrc
+RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $RUSTUP_HOME \
 && mkdir -p $CARGO_HOME \
@@ -78,8 +78,8 @@ RUN mkdir -p $RUSTUP_HOME \
 ######################################################### Node js #########################################################
 ENV NVM_DIR=$CODER_LIB/nvm
 RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
-RUN echo '[ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
-RUN echo '[ -s "\$NVM_DIR/bash_completion" ] && \. "\$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
 
 RUN mkdir -p $NVM_DIR \
 && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
