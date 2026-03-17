@@ -4,39 +4,6 @@ ENV HOME=/root \
 CODER_LIB=/env/lib
 WORKDIR /root
 
-# Go
-ENV GOROOT=$CODER_LIB/golang/go \
-GOPATH=$CODER_LIB/golang/gopath \
-GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
-ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
-RUN echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> /etc/bash.bashrc
-
-# Flutter
-ENV FLUTTER_ROOT_USAGE_WARNING=false \
-PUB_HOSTED_URL=https://pub.flutter-io.cn \
-FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-ENV PATH=$CODER_LIB/flutter/bin:$PATH
-RUN echo 'export PATH=$CODER_LIB/flutter/bin:$PATH' >> /etc/bash.bashrc
-
-# Android
-ENV ANDROID_HOME=$CODER_LIB/android
-ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
-ENV PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH
-RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' >> /etc/bash.bashrc
-
-# Rust
-ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
-CARGO_HOME=$CODER_LIB/rust/cargo
-ENV PATH="$CARGO_HOME/bin:${PATH}"
-RUN echo '. "/env/lib/rust/cargo/env"' >> /etc/bash.bashrc
-RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
-
-# Nodejs
-ENV NVM_DIR=$CODER_LIB/nvm
-RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
-RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
-RUN echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
-
 RUN mkdir -p $CODER_LIB
 RUN apt update
 RUN apt remove vim-* -y \
@@ -47,27 +14,50 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen
 RUN locale-gen
 
-# Go
+######################################################### Go #########################################################
+ENV GOROOT=$CODER_LIB/golang/go \
+GOPATH=$CODER_LIB/golang/gopath \
+GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
+ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+RUN echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> /etc/bash.bashrc
+
 RUN mkdir -p $CODER_LIB/golang/go \
 && mkdir -p $CODER_LIB/golang/gopath \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB/golang \
 && go install golang.org/x/tools/gopls@latest
 
-# Android
+######################################################### Android #########################################################
+ENV ANDROID_HOME=$CODER_LIB/android
+ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
+ENV PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH
+RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' >> /etc/bash.bashrc
+
 RUN mkdir -p $CODER_LIB/android \
 && curl -sL $(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1) | python3 -c "import sys,zipfile,io,shutil,os;z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));z.extractall('/tmp');dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest');os.makedirs(os.path.dirname(dest),exist_ok=True);shutil.move('/tmp/cmdline-tools',dest)" \
 && chmod +x $CODER_LIB/android/cmdline-tools/latest/bin/* \
 && yes | sdkmanager --sdk_root=$CODER_LIB/android "platform-tools" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
 && yes | sdkmanager --licenses
 
-# flutter
+######################################################### Flutter #########################################################
+ENV FLUTTER_ROOT_USAGE_WARNING=false \
+PUB_HOSTED_URL=https://pub.flutter-io.cn \
+FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+ENV PATH=$CODER_LIB/flutter/bin:$PATH
+RUN echo 'export PATH=$CODER_LIB/flutter/bin:$PATH' >> /etc/bash.bashrc
+
 RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 && touch /.dockerenv \
 && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "import sys,json; d=json.load(sys.stdin); h=d['current_release']['stable']; r=next(x for x in d['releases'] if x['hash']==h); print(d['base_url']+'/'+r['archive'])" | xargs curl -L | tar xJ -C $CODER_LIB/ \
 && git config --global --add safe.directory  $CODER_LIB/flutter \
 && flutter config --android-sdk $CODER_LIB/android
 
-# Rust
+######################################################### Rust #########################################################
+ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
+CARGO_HOME=$CODER_LIB/rust/cargo
+ENV PATH="$CARGO_HOME/bin:${PATH}"
+RUN echo '. "/env/lib/rust/cargo/env"' >> /etc/bash.bashrc
+RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
+
 RUN mkdir -p $RUSTUP_HOME \
 && mkdir -p $CARGO_HOME \
 && apt install -y pkg-config libssl-dev \
@@ -75,7 +65,12 @@ RUN mkdir -p $RUSTUP_HOME \
 && rustup component add rust-src --toolchain stable \
 && rustup component add rust-analyzer --toolchain stable
 
-# Node js
+######################################################### Node js #########################################################
+ENV NVM_DIR=$CODER_LIB/nvm
+RUN echo 'export NVM_DIR=$CODER_LIB/nvm' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /etc/bash.bashrc
+RUN echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /etc/bash.bashrc
+
 RUN mkdir -p $NVM_DIR \
 && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
 && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" \
