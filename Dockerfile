@@ -8,6 +8,7 @@ RUN mkdir -p $CODER_LIB
 RUN apt update
 RUN apt remove vim-* -y \
 && apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless
+RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' /etc/locale.gen \
