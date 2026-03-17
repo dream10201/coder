@@ -65,7 +65,7 @@ RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
 CARGO_HOME=$CODER_LIB/rust/cargo
 ENV PATH="$CARGO_HOME/bin:${PATH}"
-RUN echo '. "/env/lib/rust/cargo/env"' >> /etc/bash.bashrc
+RUN echo '. "$CARGO_HOME/env"' >> /etc/bash.bashrc
 RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $RUSTUP_HOME \
