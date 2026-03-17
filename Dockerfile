@@ -5,26 +5,26 @@ CODER_LIB=/env/lib
 WORKDIR /root
 
 RUN mkdir -p $CODER_LIB
-RUN apt update
-RUN apt remove vim-* -y \
-&& apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless
-RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' /etc/locale.gen \
 && sed -i -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen
 RUN locale-gen
+RUN apt update
+RUN apt remove vim-* -y \
+&& apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless
+RUN ln -s /usr/bin/python3 /usr/bin/python \
+&& echo ". /usr/share/bash-completion/completions/git" >> /etc/bash.bashrc
 
 ######################################################### Go #########################################################
-ENV GOROOT=$CODER_LIB/golang/go \
-GOPATH=$CODER_LIB/golang/gopath \
+ENV GOROOT=$CODER_LIB/go \
+GOPATH=$HOME/.gopath \
 GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
 ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 RUN echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> /etc/bash.bashrc
 
-RUN mkdir -p $CODER_LIB/golang/go \
-&& mkdir -p $CODER_LIB/golang/gopath \
-&& wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB/golang \
+RUN mkdir -p $GOPATH \
+&& wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB \
 && go install golang.org/x/tools/gopls@latest
 
 ######################################################### Android #########################################################
