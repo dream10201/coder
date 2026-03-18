@@ -44,10 +44,11 @@ jobs:
           echo "Latest:  ${{ steps.codeserver.outputs.latest }}"
           echo "Local:   ${{ steps.localver.outputs.local }}"
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "Manual trigger → 强制构建"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "push" ]; then
+            echo "Manual or push trigger → 强制构建"
             exit 0
           fi
+
 
           if [ "${{ steps.codeserver.outputs.latest }}" = "${{ steps.localver.outputs.local }}" ]; then
             echo "自动触发且版本相同 → 跳过构建"
@@ -88,7 +89,7 @@ jobs:
 
       # 8. 保存新版本号（仅自动触发且版本更新时）
       - name: Save new version
-        if: steps.check.outcome == 'success' && github.event_name != 'workflow_dispatch'
+        if: steps.check.outcome == 'success' && github.event_name != 'workflow_dispatch' && github.event_name != 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
