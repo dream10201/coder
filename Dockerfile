@@ -30,7 +30,6 @@ ENV GOROOT=$CODER_LIB/go \
 GOPATH=$HOME/.gopath \
 GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
 ENV PATH=$GOROOT/bin:$GOPATH/bin:$PATH
-RUN echo 'export PATH=$GOROOT/bin:$GOPATH/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $GOPATH \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB \
@@ -40,7 +39,6 @@ RUN mkdir -p $GOPATH \
 ENV ANDROID_HOME=$CODER_LIB/android
 ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
 ENV PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH
-RUN echo 'export PATH=$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $CODER_LIB/android \
 && curl -sL $(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1) | python3 -c "import sys,zipfile,io,shutil,os;z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()));z.extractall('/tmp');dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest');os.makedirs(os.path.dirname(dest),exist_ok=True);shutil.move('/tmp/cmdline-tools',dest)" \
@@ -53,7 +51,6 @@ ENV FLUTTER_ROOT_USAGE_WARNING=false \
 PUB_HOSTED_URL=https://pub.flutter-io.cn \
 FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
 ENV PATH=$CODER_LIB/flutter/bin:$PATH
-RUN echo 'export PATH=$CODER_LIB/flutter/bin:$PATH' >> /etc/bash.bashrc
 
 RUN apt-get install -y curl git unzip xz-utils zip libglu1-mesa \
 && touch /.dockerenv \
@@ -66,7 +63,6 @@ ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
 CARGO_HOME=$CODER_LIB/rust/cargo
 ENV PATH="$CARGO_HOME/bin:${PATH}"
 RUN echo '. "$CARGO_HOME/env"' >> /etc/bash.bashrc
-RUN echo 'export PATH=$CARGO_HOME/bin:$PATH' >> /etc/bash.bashrc
 
 RUN mkdir -p $RUSTUP_HOME \
 && mkdir -p $CARGO_HOME \
