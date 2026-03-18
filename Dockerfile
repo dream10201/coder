@@ -17,7 +17,7 @@ RUN echo "shopt -s checkwinsize" >> /etc/bash.bashrc \
 && echo 'alias ls="ls $LS_OPTIONS"' >> /etc/bash.bashrc \
 && echo "alias ll='ls $LS_OPTIONS -lhA --time-style \"+%Y/%m/%d %H:%M:%S\"'" >> /etc/bash.bashrc \
 && echo ". /etc/bash_completion" >> /etc/bash.bashrc \
-&& echo "PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /etc/bash.bashrc
+&& echo "PS1='\${debian_chroot:+(\$debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '" >> /etc/bash.bashrc
 
 RUN apt update
 RUN apt remove vim-* -y \
