@@ -18,6 +18,7 @@ RUN apt update \
 
 RUN cat >> /etc/bash.bashrc << 'EOF'
 # ========== Basic Shell Configuration ==========
+export SHELL=/bin/bash
 shopt -s checkwinsize
 export TERM=xterm-256color
 export LS_OPTIONS='--color=auto'
