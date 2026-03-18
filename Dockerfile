@@ -154,5 +154,8 @@ export NVM_DIR=$CODER_LIB/nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 EOF
 
-# Note: PATH is already set via ENV directives during Docker build
-# No need to append it again in bash.bashrc to avoid duplication
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== PATH Configuration (Composite) ==========
+# Rebuild PATH with all tool directories
+export PATH=$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH
+EOF
