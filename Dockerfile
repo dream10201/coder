@@ -27,33 +27,6 @@ alias ll='ls $LS_OPTIONS -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
 . /etc/bash_completion
 . /usr/share/bash-completion/completions/git
 PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-
-# ========== Go Configuration ==========
-export GOROOT=/env/lib/go
-export GOPATH=/root/.gopath
-export GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
-
-# ========== Android Configuration ==========
-export ANDROID_HOME=/env/lib/android
-export ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
-
-# ========== Flutter Configuration ==========
-export FLUTTER_ROOT_USAGE_WARNING=false
-export PUB_HOSTED_URL=https://pub.flutter-io.cn
-export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-
-# ========== Rust Configuration ==========
-export RUSTUP_HOME=/env/lib/rust/rustup
-export CARGO_HOME=/env/lib/rust/cargo
-. "$CARGO_HOME/env"
-
-# ========== Node.js / NVM Configuration ==========
-export NVM_DIR=/env/lib/nvm
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# ========== PATH Configuration ==========
-export PATH=/env/lib/rust/cargo/bin:/env/lib/flutter/bin:/env/lib/android/platform-tools:/env/lib/android/cmdline-tools/latest/bin:/env/lib/go/bin:/root/.gopath/bin:$PATH
 EOF
 
 ######################################################### Go #########################################################
@@ -66,6 +39,13 @@ RUN mkdir -p $GOPATH \
 && wget -qO- https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r .[0].version).linux-amd64.tar.gz | tar -xz -C $CODER_LIB \
 && go install golang.org/x/tools/gopls@latest
 
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== Go Configuration ==========
+export GOROOT=$CODER_LIB/go
+export GOPATH=$HOME/.gopath
+export GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
+EOF
+
 ######################################################### Android #########################################################
 ENV ANDROID_HOME=$CODER_LIB/android
 ENV ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
@@ -77,16 +57,31 @@ RUN mkdir -p $CODER_LIB/android \
 && yes | sdkmanager --sdk_root=$CODER_LIB/android "platform-tools" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root=$CODER_LIB/android --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
 && yes | sdkmanager --licenses
 
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== Android Configuration ==========
+export ANDROID_HOME=$CODER_LIB/android
+export ANDROID_SDK_ROOT=$ANDROID_HOME/cmdline-tools/latest
+EOF
+
 ######################################################### Flutter #########################################################
-ENV FLUTTER_ROOT_USAGE_WARNING=false \
+ENV FLUTTER_ROOT=$CODER_LIB/flutter \
+FLUTTER_ROOT_USAGE_WARNING=false \
 PUB_HOSTED_URL=https://pub.flutter-io.cn \
 FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-ENV PATH=$CODER_LIB/flutter/bin:$PATH
+ENV PATH=$FLUTTER_ROOT/bin:$PATH
 
 RUN touch /.dockerenv \
 && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json | python3 -c "import sys,json; d=json.load(sys.stdin); h=d['current_release']['stable']; r=next(x for x in d['releases'] if x['hash']==h); print(d['base_url']+'/'+r['archive'])" | xargs curl -L | tar xJ -C $CODER_LIB/ \
 && git config --global --add safe.directory  $CODER_LIB/flutter \
 && flutter config --android-sdk $CODER_LIB/android
+
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== Flutter Configuration ==========
+export FLUTTER_ROOT=$CODER_LIB/flutter
+export FLUTTER_ROOT_USAGE_WARNING=false
+export PUB_HOSTED_URL=https://pub.flutter-io.cn
+export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+EOF
 
 ######################################################### Rust #########################################################
 ENV RUSTUP_HOME=$CODER_LIB/rust/rustup \
@@ -99,6 +94,13 @@ RUN mkdir -p $RUSTUP_HOME \
 && rustup component add rust-src --toolchain stable \
 && rustup component add rust-analyzer --toolchain stable
 
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== Rust Configuration ==========
+export RUSTUP_HOME=$CODER_LIB/rust/rustup
+export CARGO_HOME=$CODER_LIB/rust/cargo
+. "$CARGO_HOME/env"
+EOF
+
 ######################################################### Node js #########################################################
 ENV NVM_DIR=$CODER_LIB/nvm
 
@@ -108,3 +110,15 @@ RUN mkdir -p $NVM_DIR \
 && nvm install 25 \
 && npm install -g pnpm \
 && npm config set registry https://registry.npmmirror.com/
+
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== Node.js / NVM Configuration ==========
+export NVM_DIR=$CODER_LIB/nvm
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+EOF
+
+RUN cat >> /etc/bash.bashrc << 'EOF'
+# ========== PATH Configuration (Composite) ==========
+export PATH=$CARGO_HOME/bin:$FLUTTER_ROOT/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$GOROOT/bin:$GOPATH/bin:$PATH
+EOF
