@@ -78,6 +78,8 @@ RUN cat >> /etc/bash.bashrc << 'EOF'
 export GOROOT=$CODER_LIB/go
 export GOPATH=$HOME/.gopath
 export GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
+alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
+alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
 EOF
 
 ######################################################### Android #########################################################
