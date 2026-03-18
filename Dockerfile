@@ -26,7 +26,41 @@ alias ls="ls $LS_OPTIONS"
 alias ll='ls $LS_OPTIONS -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
 . /etc/bash_completion
 . /usr/share/bash-completion/completions/git
-PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+
+git_prompt_info() {
+  local branch=$(git branch --show-current 2>/dev/null)
+  [[ -n $branch ]] || return
+
+  local dirty=$(git status --porcelain 2>/dev/null)
+
+  local yellow=$'\001\e[0;33m\002'
+  local green=$'\001\e[0;32m\002'
+  local reset=$'\001\e[0m\002'
+
+  if [[ -n $dirty ]]; then
+    echo "${yellow}(${branch} ✗)${reset}"
+  else
+    echo "${green}(${branch} ✓)${reset}"
+  fi
+}
+
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
+
+function cd() {
+    builtin cd "$@" || return $?
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+        local venv_root_dir
+        venv_root_dir=$(dirname "$VIRTUAL_ENV")
+        if [[ "$PWD" != "$venv_root_dir" && "$PWD" != "$venv_root_dir"/* ]]; then
+            deactivate
+        fi
+    fi
+    if [[ -z "$VIRTUAL_ENV" ]]; then
+        if [[ -f "./.venv/bin/activate" ]]; then
+            source "./.venv/bin/activate"
+        fi
+    fi
+}
 EOF
 
 ######################################################### Go #########################################################
@@ -118,7 +152,5 @@ export NVM_DIR=$CODER_LIB/nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 EOF
 
-RUN cat >> /etc/bash.bashrc << 'EOF'
-# ========== PATH Configuration (Composite) ==========
-export PATH=$CARGO_HOME/bin:$FLUTTER_ROOT/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$GOROOT/bin:$GOPATH/bin:$PATH
-EOF
+# Note: PATH is already set via ENV directives during Docker build
+# No need to append it again in bash.bashrc to avoid duplication
