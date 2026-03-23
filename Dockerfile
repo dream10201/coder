@@ -47,21 +47,6 @@ git_prompt_info() {
 
 PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
 
-function cd() {
-    builtin cd "$@" || return $?
-    if [[ -n "$VIRTUAL_ENV" ]]; then
-        local venv_root_dir
-        venv_root_dir=$(dirname "$VIRTUAL_ENV")
-        if [[ "$PWD" != "$venv_root_dir" && "$PWD" != "$venv_root_dir"/* ]]; then
-            deactivate
-        fi
-    fi
-    if [[ -z "$VIRTUAL_ENV" ]]; then
-        if [[ -f "./.venv/bin/activate" ]]; then
-            source "./.venv/bin/activate"
-        fi
-    fi
-}
 EOF
 
 ######################################################### Go #########################################################
