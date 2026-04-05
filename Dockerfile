@@ -60,13 +60,17 @@ RUN mkdir -p "$CODER_LIB/android" \
     && mv /tmp/cmdline-tools "$CODER_LIB/android/cmdline-tools/latest" \
     && chmod +x "$ANDROID_SDK_ROOT/bin/"* \
     && SDKMANAGER="$ANDROID_SDK_ROOT/bin/sdkmanager" \
+    && set +o pipefail \
     && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses >/dev/null \
+    && set -o pipefail \
     && BUILD_TOOLS_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +build-tools;[0-9.]+/ {print $1}' | sort -V | tail -n1) \
     && PLATFORM_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +platforms;android-[0-9]+/ {print $1}' | sort -V | tail -n1) \
     && BUILD_TOOLS_VERSION=${BUILD_TOOLS_VERSION:-build-tools;34.0.0} \
     && PLATFORM_VERSION=${PLATFORM_VERSION:-platforms;android-34} \
+    && set +o pipefail \
     && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" "platform-tools" "$BUILD_TOOLS_VERSION" "$PLATFORM_VERSION" \
-    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses
+    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses \
+    && set -o pipefail
 
 ######################################################### Flutter #########################################################
 RUN touch /.dockerenv \
