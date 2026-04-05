@@ -3,6 +3,7 @@ USER 0:0
 
 ENV HOME=/root \
     CODER_LIB=/env/lib \
+    JAVA_HOME=/env/lib/java \
     GOROOT=/env/lib/go \
     GOPATH=/root/.gopath \
     GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct \
@@ -18,7 +19,7 @@ ENV HOME=/root \
     NODE_HOME=/usr/local/lib/node/current \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
-ENV PATH="$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
 
 WORKDIR /root
 SHELL ["/bin/bash","-o","pipefail","-c"]
@@ -34,9 +35,14 @@ RUN locale-gen
 
 RUN apt update \
     && apt remove vim-* -y \
-    && apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git openjdk-17-jdk-headless unzip xz-utils libglu1-mesa pkg-config libssl-dev \
+    && apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git unzip xz-utils libglu1-mesa pkg-config libssl-dev \
     && apt clean && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
+
+######################################################### Java #########################################################
+RUN mkdir -p "$JAVA_HOME" \
+    && curl -fsSL https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse \
+      | tar -xz -C "$JAVA_HOME" --strip-components=1
 
 ######################################################### Go #########################################################
 RUN mkdir -p "$GOPATH" \
@@ -85,6 +91,10 @@ if [ -z "${CODER_LIB:-}" ]; then
   CODER_LIB=/env/lib
 fi
 export CODER_LIB
+if [ -z "${JAVA_HOME:-}" ]; then
+  JAVA_HOME=/env/lib/java
+fi
+export JAVA_HOME
 if [ -z "${GOROOT:-}" ]; then
   GOROOT="$CODER_LIB/go"
 fi
@@ -141,7 +151,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_SDK_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_SDK_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
