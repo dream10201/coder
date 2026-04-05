@@ -51,11 +51,22 @@ RUN mkdir -p "$GOPATH" \
 
 ######################################################### Android #########################################################
 RUN mkdir -p "$CODER_LIB/android" \
-    && curl -sL "$(curl -sL https://developer.android.com/studio | grep -oP 'https://dl.google.com/android/repository/commandlinetools-linux-[0-9]+_latest\.zip' | head -1)" \
-      | python3 -c "import sys,zipfile,io,shutil,os; z=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read())); z.extractall('/tmp'); dest=os.path.join(os.environ['CODER_LIB'],'android/cmdline-tools/latest'); os.makedirs(os.path.dirname(dest), exist_ok=True); shutil.move('/tmp/cmdline-tools', dest)" \
-    && chmod +x "$CODER_LIB/android/cmdline-tools/latest/bin/"* \
-    && yes | sdkmanager --sdk_root="$CODER_LIB/android" "platform-tools" "$(sdkmanager --sdk_root="$CODER_LIB/android" --list | grep 'build-tools;' | awk '{print $1}' | sort -V | tail -n1)" "$(sdkmanager --sdk_root="$CODER_LIB/android" --list | grep 'platforms;android-' | awk '{print $1}' | sort -V | tail -n1)" \
-    && yes | sdkmanager --licenses
+    && rm -rf /tmp/cmdline-tools /tmp/cmdline-tools.zip \
+    && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdline-tools.zip \
+    && unzip -q /tmp/cmdline-tools.zip -d /tmp \
+    && rm -f /tmp/cmdline-tools.zip \
+    && rm -rf "$CODER_LIB/android/cmdline-tools" \
+    && mkdir -p "$CODER_LIB/android/cmdline-tools" \
+    && mv /tmp/cmdline-tools "$CODER_LIB/android/cmdline-tools/latest" \
+    && chmod +x "$ANDROID_SDK_ROOT/bin/"* \
+    && SDKMANAGER="$ANDROID_SDK_ROOT/bin/sdkmanager" \
+    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses >/dev/null \
+    && BUILD_TOOLS_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +build-tools;[0-9.]+/ {print $1}' | sort -V | tail -n1) \
+    && PLATFORM_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +platforms;android-[0-9]+/ {print $1}' | sort -V | tail -n1) \
+    && BUILD_TOOLS_VERSION=${BUILD_TOOLS_VERSION:-build-tools;34.0.0} \
+    && PLATFORM_VERSION=${PLATFORM_VERSION:-platforms;android-34} \
+    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" "platform-tools" "$BUILD_TOOLS_VERSION" "$PLATFORM_VERSION" \
+    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses
 
 ######################################################### Flutter #########################################################
 RUN touch /.dockerenv \
