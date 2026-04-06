@@ -81,7 +81,6 @@ RUN touch /.dockerenv \
     && git config --global --add safe.directory "$CODER_LIB/flutter" \
     && flutter config --android-sdk "$CODER_LIB/android" \
     && flutter precache --android \
-    && rm -rf "$FLUTTER_ROOT/.git" \
     && rm -rf "$FLUTTER_ROOT/bin/cache/downloads" \
     && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name '*linux*' -o -name '*web*' \) -exec rm -rf {} + \
     && rm -rf /tmp/*
