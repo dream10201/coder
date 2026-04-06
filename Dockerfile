@@ -240,4 +240,4 @@ EOF
 
 ######################################################### Filesystem cleanup #########################################################
 RUN rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /var/cache/apt/* /var/tmp/* /tmp/* /var/lib/apt/lists/* \
-    && { find /env -maxdepth 3 -type d -name '.git' -prune -exec rm -rf {} + || true; }
+    && rm -rf "$CODER_LIB/nvm/.git" "$HOME/.cache" "$HOME/.npm" || true
