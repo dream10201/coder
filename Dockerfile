@@ -35,7 +35,7 @@ RUN locale-gen
 
 RUN apt update \
     && apt remove vim-* -y \
-    && apt install -y bash-completion python3-full python3-pip wget jq curl vim zip git unzip xz-utils libglu1-mesa pkg-config libssl-dev \
+    && apt install -y --no-install-recommends bash-completion python3 python3-pip wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
     && apt clean && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
@@ -79,13 +79,21 @@ RUN touch /.dockerenv \
       | xargs curl -L \
       | tar xJ -C "$CODER_LIB/" \
     && git config --global --add safe.directory "$CODER_LIB/flutter" \
-    && flutter config --android-sdk "$CODER_LIB/android"
+    && flutter config --android-sdk "$CODER_LIB/android" \
+    && flutter precache --android \
+    && rm -rf "$FLUTTER_ROOT/.git" \
+    && rm -rf "$FLUTTER_ROOT/bin/cache/downloads" \
+    && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \\( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name 'linux*' -o -name '*web*' \\) -exec rm -rf {} + \
+    && rm -rf /tmp/*
 
 ######################################################### Rust #########################################################
 RUN mkdir -p "$RUSTUP_HOME" "$CARGO_HOME" \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --no-modify-path --default-toolchain stable \
     && rustup component add rust-src --toolchain stable \
-    && rustup component add rust-analyzer --toolchain stable
+    && rustup component add rust-analyzer --toolchain stable \
+    && rustup component remove rust-docs --toolchain stable || true \
+    && rm -rf "$CARGO_HOME/registry" "$CARGO_HOME/git" "$RUSTUP_HOME/tmp" \
+    && rm -rf /tmp/*
 
 ######################################################### Node js #########################################################
 RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
@@ -97,7 +105,9 @@ RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
     && ln -sfn "$NVM_DIR/versions/node/$NODE_VERSION" /usr/local/lib/node/current \
     && nvm use default \
     && npm install -g pnpm \
-    && npm config set registry https://registry.npmmirror.com/
+    && npm config set registry https://registry.npmmirror.com/ \
+    && npm cache clean --force \
+    && rm -rf "$NVM_DIR/.cache" "$HOME/.npm" /tmp/*
 
 ######################################################### Profile scripts #########################################################
 RUN cat <<'EOF' >/etc/profile.d/00-coder-env.sh
@@ -228,3 +238,7 @@ if [ "${CODER_INTERACTIVE:-0}" -eq 1 ] && [ -n "${BASH_VERSION:-}" ]; then
   PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
 fi
 EOF
+
+######################################################### Filesystem cleanup #########################################################
+RUN rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /var/cache/apt/* /var/tmp/* /tmp/* /var/lib/apt/lists/* \
+    && { find /env -maxdepth 3 -type d -name '.git' -prune -exec rm -rf {} + || true; }
