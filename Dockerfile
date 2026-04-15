@@ -35,7 +35,7 @@ RUN locale-gen
 
 RUN apt update \
     && apt remove vim-* -y \
-    && apt install -y --no-install-recommends bash-completion python3 python3-pip wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates libatomic1 ripgrep build-essential \
+    && apt install -y --no-install-recommends bash-completion python3 python3-pip wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates libatomic1 ripgrep build-essential shellcheck \
     && apt clean && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
