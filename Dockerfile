@@ -95,7 +95,7 @@ RUN touch /.dockerenv \
     && flutter config --android-sdk "$CODER_LIB/android" \
     && flutter precache --android \
     && rm -rf "$FLUTTER_ROOT/bin/cache/downloads" \
-    && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name '*web*' -o -name 'linux-arm*' \) -exec rm -rf {} + \
+    && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name 'linux-arm*' \) -exec rm -rf {} + \
     && rm -rf /tmp/*
 
 ######################################################### Rust #########################################################
