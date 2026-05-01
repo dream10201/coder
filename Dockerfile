@@ -37,7 +37,7 @@ RUN apt update \
     && apt remove vim-* -y \
     && apt install -y --no-install-recommends bash-completion python3 python3-pip \
     wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
-    libatomic1 ripgrep build-essential shellcheck sshpass \
+    libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
     && apt clean && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
