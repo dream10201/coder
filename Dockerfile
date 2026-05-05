@@ -43,16 +43,14 @@ RUN apt update \
 
 # Install GitHub CLI
 RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
-	&& mkdir -p -m 755 /etc/apt/keyrings \
-	&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-	&& cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-	&& chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-	&& mkdir -p -m 755 /etc/apt/sources.list.d \
-	&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-	&& apt update \
-	&& apt install gh -y \
-  && apt update \
-  && apt install -y gh
+		&& mkdir -p -m 755 /etc/apt/keyrings \
+		&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+		&& cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+		&& chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+		&& mkdir -p -m 755 /etc/apt/sources.list.d \
+		&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+		&& apt update \
+		&& apt install -y gh
 
 ######################################################### Java #########################################################
 RUN mkdir -p "$JAVA_HOME" \
@@ -124,83 +122,6 @@ RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
     && rm -rf "$NVM_DIR/.cache" "$HOME/.npm" /tmp/*
 
 ######################################################### Profile scripts #########################################################
-RUN cat <<'EOF' >/etc/profile.d/00-coder-env.sh
-# Ensure language/tool environment variables exist for login shells
-if [ -z "${CODER_LIB:-}" ]; then
-  CODER_LIB=/env/lib
-fi
-export CODER_LIB
-if [ -z "${JAVA_HOME:-}" ]; then
-  JAVA_HOME=/env/lib/java
-fi
-export JAVA_HOME
-if [ -z "${GOROOT:-}" ]; then
-  GOROOT="$CODER_LIB/go"
-fi
-export GOROOT
-if [ -z "${GOPATH:-}" ]; then
-  GOPATH=/root/.gopath
-fi
-export GOPATH
-if [ -z "${GOPROXY:-}" ]; then
-  GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
-fi
-export GOPROXY
-if [ -z "${ANDROID_HOME:-}" ]; then
-  ANDROID_HOME="$CODER_LIB/android"
-fi
-export ANDROID_HOME
-if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
-  ANDROID_SDK_ROOT="$ANDROID_HOME/cmdline-tools/latest"
-fi
-export ANDROID_SDK_ROOT
-if [ -z "${FLUTTER_ROOT:-}" ]; then
-  FLUTTER_ROOT="$CODER_LIB/flutter"
-fi
-export FLUTTER_ROOT
-if [ -z "${FLUTTER_ROOT_USAGE_WARNING:-}" ]; then
-  FLUTTER_ROOT_USAGE_WARNING=false
-fi
-export FLUTTER_ROOT_USAGE_WARNING
-if [ -z "${PUB_HOSTED_URL:-}" ]; then
-  PUB_HOSTED_URL=https://pub.flutter-io.cn
-fi
-export PUB_HOSTED_URL
-if [ -z "${FLUTTER_STORAGE_BASE_URL:-}" ]; then
-  FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-fi
-export FLUTTER_STORAGE_BASE_URL
-if [ -z "${RUSTUP_HOME:-}" ]; then
-  RUSTUP_HOME="$CODER_LIB/rust/rustup"
-fi
-export RUSTUP_HOME
-if [ -z "${CARGO_HOME:-}" ]; then
-  CARGO_HOME="$CODER_LIB/rust/cargo"
-fi
-export CARGO_HOME
-if [ -z "${NVM_DIR:-}" ]; then
-  NVM_DIR=/env/lib/nvm
-fi
-export NVM_DIR
-if [ -z "${NODE_HOME:-}" ]; then
-  NODE_HOME=/usr/local/lib/node/current
-fi
-export NODE_HOME
-
-if [ -z "${PATH:-}" ]; then
-  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_SDK_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
-  if [ -d "$dir" ]; then
-    case ":$PATH:" in
-      *":$dir:"*) ;;
-      *) PATH="$dir:$PATH" ;;
-    esac
-  fi
-done
-export PATH
-EOF
-
 RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
 case $- in
   *i*) CODER_INTERACTIVE=1 ;;
