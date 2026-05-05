@@ -202,6 +202,11 @@ export PATH
 EOF
 
 RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
+if [ -n "${CODER_SHELL_INIT_DONE:-}" ]; then
+  return
+fi
+export CODER_SHELL_INIT_DONE=1
+
 case $- in
   *i*) CODER_INTERACTIVE=1 ;;
   *) CODER_INTERACTIVE=0 ;;
@@ -250,6 +255,13 @@ if [ "${CODER_INTERACTIVE:-0}" -eq 1 ] && [ -n "${BASH_VERSION:-}" ]; then
   }
 
   PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
+fi
+EOF
+
+RUN cat <<'EOF' >>/etc/bash.bashrc
+
+if [ -r /etc/profile.d/99-coder-shell.sh ]; then
+  . /etc/profile.d/99-coder-shell.sh
 fi
 EOF
 
