@@ -202,60 +202,62 @@ export PATH
 EOF
 
 RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
-if [ -n "${CODER_SHELL_INIT_DONE:-}" ]; then
-  return
-fi
-export CODER_SHELL_INIT_DONE=1
-
 case $- in
   *i*) CODER_INTERACTIVE=1 ;;
   *) CODER_INTERACTIVE=0 ;;
 esac
 
-if [ "${CODER_INTERACTIVE:-0}" -eq 1 ] && [ -n "${BASH_VERSION:-}" ]; then
-  export SHELL=/bin/bash
-  shopt -s checkwinsize
-  if [ -z "${TERM:-}" ]; then
-    export TERM=xterm-256color
-  fi
-  if command -v dircolors >/dev/null 2>&1; then
-    eval "$(dircolors)"
-  fi
-  alias ls='ls --color=auto'
-  alias ll='ls --color=auto -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
-  alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
-  alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
-
-  if [ -f /etc/bash_completion ]; then
-    . /etc/bash_completion
-  fi
-  if [ -f /usr/share/bash-completion/completions/git ]; then
-    . /usr/share/bash-completion/completions/git
-  fi
-  if [ -s "$NVM_DIR/nvm.sh" ]; then
-    . "$NVM_DIR/nvm.sh"
-  fi
-  if [ -s "$NVM_DIR/bash_completion" ]; then
-    . "$NVM_DIR/bash_completion"
-  fi
-
-  git_prompt_info() {
-    local branch dirty yellow green reset
-    branch=$(git branch --show-current 2>/dev/null) || return
-    [ -n "$branch" ] || return
-    dirty=$(git status --porcelain 2>/dev/null)
-    yellow=$(printf '\001\033[0;33m\002')
-    green=$(printf '\001\033[0;32m\002')
-    reset=$(printf '\001\033[0m\002')
-    if [ -n "$dirty" ]; then
-      printf '%s(%s ✗)%s' "$yellow" "$branch" "$reset"
-    else
-      printf '%s(%s ✓)%s' "$green" "$branch" "$reset"
-    fi
-  }
-
-  PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
+if [ "${CODER_INTERACTIVE:-0}" -ne 1 ] || [ -z "${BASH_VERSION:-}" ]; then
+  return
 fi
+
+if [ -n "${CODER_SHELL_INIT_DONE:-}" ]; then
+  return
+fi
+
+CODER_SHELL_INIT_DONE=1
+export SHELL=/bin/bash
+shopt -s checkwinsize
+if [ -z "${TERM:-}" ]; then
+  export TERM=xterm-256color
+fi
+if command -v dircolors >/dev/null 2>&1; then
+  eval "$(dircolors)"
+fi
+alias ls='ls --color=auto'
+alias ll='ls --color=auto -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
+alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
+alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
+
+if [ -f /etc/bash_completion ]; then
+  . /etc/bash_completion
+fi
+if [ -f /usr/share/bash-completion/completions/git ]; then
+  . /usr/share/bash-completion/completions/git
+fi
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+fi
+if [ -s "$NVM_DIR/bash_completion" ]; then
+  . "$NVM_DIR/bash_completion"
+fi
+
+git_prompt_info() {
+  local branch dirty yellow green reset
+  branch=$(git branch --show-current 2>/dev/null) || return
+  [ -n "$branch" ] || return
+  dirty=$(git status --porcelain 2>/dev/null)
+  yellow=$(printf '\001\033[0;33m\002')
+  green=$(printf '\001\033[0;32m\002')
+  reset=$(printf '\001\033[0m\002')
+  if [ -n "$dirty" ]; then
+    printf '%s(%s ✗)%s' "$yellow" "$branch" "$reset"
+  else
+    printf '%s(%s ✓)%s' "$green" "$branch" "$reset"
+  fi
+}
+
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
 EOF
 
 RUN cat <<'EOF' >>/etc/bash.bashrc
