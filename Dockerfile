@@ -8,7 +8,8 @@ ENV HOME=/root \
     GOPATH=/root/.gopath \
     GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct \
     ANDROID_HOME=/env/lib/android \
-    ANDROID_SDK_ROOT=/env/lib/android/cmdline-tools/latest \
+    ANDROID_SDK_ROOT=/env/lib/android \
+    ANDROID_CMDLINE_TOOLS_ROOT=/env/lib/android/cmdline-tools/latest \
     FLUTTER_ROOT=/env/lib/flutter \
     FLUTTER_ROOT_USAGE_WARNING=false \
     PUB_HOSTED_URL=https://pub.flutter-io.cn \
@@ -19,7 +20,7 @@ ENV HOME=/root \
     NODE_HOME=/usr/local/lib/node/current \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
-ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_SDK_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
 
 WORKDIR /root
 SHELL ["/bin/bash","-o","pipefail","-c"]
@@ -72,8 +73,8 @@ RUN mkdir -p "$CODER_LIB/android" \
     && rm -rf "$CODER_LIB/android/cmdline-tools" \
     && mkdir -p "$CODER_LIB/android/cmdline-tools" \
     && mv /tmp/cmdline-tools "$CODER_LIB/android/cmdline-tools/latest" \
-    && chmod +x "$ANDROID_SDK_ROOT/bin/"* \
-    && SDKMANAGER="$ANDROID_SDK_ROOT/bin/sdkmanager" \
+    && chmod +x "$ANDROID_CMDLINE_TOOLS_ROOT/bin/"* \
+    && SDKMANAGER="$ANDROID_CMDLINE_TOOLS_ROOT/bin/sdkmanager" \
     && set +o pipefail \
     && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses >/dev/null \
     && set -o pipefail \
@@ -149,9 +150,13 @@ if [ -z "${ANDROID_HOME:-}" ]; then
 fi
 export ANDROID_HOME
 if [ -z "${ANDROID_SDK_ROOT:-}" ]; then
-  ANDROID_SDK_ROOT="$ANDROID_HOME/cmdline-tools/latest"
+  ANDROID_SDK_ROOT="$ANDROID_HOME"
 fi
 export ANDROID_SDK_ROOT
+if [ -z "${ANDROID_CMDLINE_TOOLS_ROOT:-}" ]; then
+  ANDROID_CMDLINE_TOOLS_ROOT="$ANDROID_HOME/cmdline-tools/latest"
+fi
+export ANDROID_CMDLINE_TOOLS_ROOT
 if [ -z "${FLUTTER_ROOT:-}" ]; then
   FLUTTER_ROOT="$CODER_LIB/flutter"
 fi
@@ -188,7 +193,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_SDK_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
