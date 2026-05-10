@@ -129,7 +129,7 @@ RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/sc
     && npm install \
     && npm run build \
     && npx --yes @vscode/vsce package --out /tmp/scrcpy_sidebar.vsix \
-    && code-server --install-extension /tmp/scrcpy_sidebar.vsix \
+    && code-server --install-extension /tmp/scrcpy_sidebar.vsix --extensions-dir /usr/lib/code-server/lib/vscode/extensions/ \
     && rm -rf /tmp/scrcpy_sidebar /tmp/scrcpy_sidebar.vsix "$HOME/.npm" "$HOME/.cache"
 
 ######################################################### Profile scripts #########################################################
