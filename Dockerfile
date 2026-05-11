@@ -40,12 +40,10 @@ RUN apt update \
     && apt install -y --no-install-recommends bash-completion python3 python3-pip \
     wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
     libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-    && apt clean && rm -rf /var/lib/apt/lists/* \
     && ln -s /usr/bin/python3 /usr/bin/python
 
 # Install GitHub CLI
-RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
-		&& mkdir -p -m 755 /etc/apt/keyrings \
+RUN mkdir -p -m 755 /etc/apt/keyrings \
 		&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 		&& cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
 		&& chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -282,4 +280,5 @@ EOF
 
 ######################################################### Filesystem cleanup #########################################################
 RUN rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /var/cache/apt/* /var/tmp/* /tmp/* /var/lib/apt/lists/* \
-    && rm -rf "$CODER_LIB/nvm/.git" "$HOME/.cache" "$HOME/.npm" || true
+    && rm -rf "$CODER_LIB/nvm/.git" "$HOME/.cache" "$HOME/.npm" || true \
+    && apt clean
