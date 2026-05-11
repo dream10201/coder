@@ -56,7 +56,8 @@ RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
 
 ######################################################### Java #########################################################
 RUN mkdir -p "$JAVA_HOME" \
-    && curl -fsSL https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse \
+    && JAVA_FEATURE_VERSION="$(curl -fsSL https://api.adoptium.net/v3/info/available_releases | jq -r '.most_recent_feature_release')" \
+    && curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_FEATURE_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse" \
       | tar -xz -C "$JAVA_HOME" --strip-components=1
 
 ######################################################### Go #########################################################
@@ -67,7 +68,8 @@ RUN mkdir -p "$GOPATH" \
 ######################################################### Android #########################################################
 RUN mkdir -p "$CODER_LIB/android" \
     && rm -rf /tmp/cmdline-tools /tmp/cmdline-tools.zip \
-    && curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/cmdline-tools.zip \
+    && CMDLINE_TOOLS_ZIP="$(curl -fsSL https://dl.google.com/android/repository/repository2-1.xml | grep -o 'commandlinetools-linux-[0-9]\+_latest.zip' | sort -Vu | tail -n1)" \
+    && curl -fsSL "https://dl.google.com/android/repository/${CMDLINE_TOOLS_ZIP}" -o /tmp/cmdline-tools.zip \
     && unzip -q /tmp/cmdline-tools.zip -d /tmp \
     && rm -f /tmp/cmdline-tools.zip \
     && rm -rf "$CODER_LIB/android/cmdline-tools" \
@@ -80,8 +82,8 @@ RUN mkdir -p "$CODER_LIB/android" \
     && set -o pipefail \
     && BUILD_TOOLS_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +build-tools;[0-9.]+/ {print $1}' | sort -V | tail -n1) \
     && PLATFORM_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +platforms;android-[0-9]+/ {print $1}' | sort -V | tail -n1) \
-    && BUILD_TOOLS_VERSION=${BUILD_TOOLS_VERSION:-build-tools;34.0.0} \
-    && PLATFORM_VERSION=${PLATFORM_VERSION:-platforms;android-34} \
+    && test -n "$BUILD_TOOLS_VERSION" \
+    && test -n "$PLATFORM_VERSION" \
     && set +o pipefail \
     && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" "platform-tools" "$BUILD_TOOLS_VERSION" "$PLATFORM_VERSION" \
     && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses \
@@ -111,11 +113,12 @@ RUN mkdir -p "$RUSTUP_HOME" "$CARGO_HOME" \
 
 ######################################################### Node js #########################################################
 RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
-    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash \
+    && NVM_VERSION="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/nvm-sh/nvm/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash \
     && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
-    && nvm install 25 \
-    && nvm alias default 25 \
-    && NODE_VERSION=$(nvm version default) \
+    && nvm install node \
+    && nvm alias default node \
+    && NODE_VERSION="$(nvm current)" \
     && ln -sfn "$NVM_DIR/versions/node/$NODE_VERSION" /usr/local/lib/node/current \
     && nvm use default \
     && npm install -g pnpm \
