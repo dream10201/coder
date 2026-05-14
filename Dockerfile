@@ -125,13 +125,13 @@ RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
     && rm -rf "$NVM_DIR/.cache" "$HOME/.npm" /tmp/*
 
 ######################################################### code-server extensions #########################################################
-# RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/scrcpy_sidebar \
-#     && cd /tmp/scrcpy_sidebar \
-#     && npm install \
-#     && npm run build \
-#     && npx --yes @vscode/vsce package --out /tmp/scrcpy_sidebar.vsix \
-#     && code-server --install-extension /tmp/scrcpy_sidebar.vsix --extensions-dir /usr/lib/code-server/lib/vscode/extensions/ \
-#     && rm -rf /tmp/scrcpy_sidebar /tmp/scrcpy_sidebar.vsix "$HOME/.npm" "$HOME/.cache"
+RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/scrcpy_sidebar \
+    && cd /tmp/scrcpy_sidebar \
+    && npm install \
+    && npm run build \
+    && npx --yes @vscode/vsce package --out /tmp/scrcpy_sidebar.vsix \
+    && code-server --install-extension /tmp/scrcpy_sidebar.vsix --extensions-dir /usr/lib/code-server/lib/vscode/extensions/ \
+    && rm -rf /tmp/scrcpy_sidebar /tmp/scrcpy_sidebar.vsix "$HOME/.npm" "$HOME/.cache"
 
 ######################################################### Profile scripts #########################################################
 RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
