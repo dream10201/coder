@@ -238,6 +238,7 @@ fi
 alias ls='ls --color=auto'
 alias ll='ls --color=auto -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
 alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
+alias golinux_arm64='CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o app_arm64 .'
 alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
 
 if [ -f /etc/bash_completion ]; then
