@@ -40,7 +40,7 @@ RUN apt update \
     && apt install -y --no-install-recommends bash-completion python3 python3-pip \
     wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
     libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-    python3-venv \
+    python3-venv file \
     && ln -s /usr/bin/python3 /usr/bin/python
 
 # Install GitHub CLI
