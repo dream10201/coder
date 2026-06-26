@@ -53,6 +53,9 @@ RUN mkdir -p -m 755 /etc/apt/keyrings \
 		&& apt update \
 		&& apt install -y gh
 
+######################################################### Install opencode #########################################################
+RUN curl -fsSL https://opencode.ai/install | bash
+
 ######################################################### Java #########################################################
 RUN mkdir -p "$JAVA_HOME" \
     && JAVA_FEATURE_VERSION="$(curl -fsSL https://api.adoptium.net/v3/info/available_releases | jq -r '.most_recent_feature_release')" \
@@ -284,3 +287,4 @@ EOF
 RUN rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /var/cache/apt/* /var/tmp/* /tmp/* /var/lib/apt/lists/* \
     && rm -rf "$CODER_LIB/nvm/.git" "$HOME/.cache" "$HOME/.npm" || true \
     && apt clean
+
