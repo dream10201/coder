@@ -1,4 +1,7 @@
-FROM docker.io/codercom/code-server:latest
+ARG BASE_IMAGE=docker.io/codercom/code-server:latest
+
+############################# Builder: toolchains -> /env/lib #############################
+FROM ${BASE_IMAGE} AS builder
 USER 0:0
 
 ENV HOME=/root \
@@ -22,36 +25,13 @@ ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/pl
 WORKDIR /root
 SHELL ["/bin/bash","-o","pipefail","-c"]
 
+# Minimal build-time deps only; heavy runtime packages live in the final stage.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates curl wget jq git unzip xz-utils python3 file \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p "$CODER_LIB"
-
-RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' /etc/locale.gen \
-    && sed -i -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' /etc/locale.gen \
-    && sed -i -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' /etc/locale.gen \
-    && sed -i -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen
-
-RUN locale-gen
-
-RUN apt update \
-    && apt upgrade -y \
-    && apt remove vim-* -y \
-    && apt install -y --no-install-recommends bash-completion python3 python3-pip \
-    wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
-    libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-    python3-venv file 7zip \
-    && ln -s /usr/bin/python3 /usr/bin/python
-
-# Install GitHub CLI
-RUN mkdir -p -m 755 /etc/apt/keyrings \
-		&& out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-		&& cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-		&& chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-		&& mkdir -p -m 755 /etc/apt/sources.list.d \
-		&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-		&& apt update \
-		&& apt install -y gh
-
-######################################################### Install opencode #########################################################
-RUN curl -fsSL https://opencode.ai/install | bash
 
 ######################################################### Java #########################################################
 RUN mkdir -p "$JAVA_HOME" \
@@ -60,9 +40,12 @@ RUN mkdir -p "$JAVA_HOME" \
       | tar -xz -C "$JAVA_HOME" --strip-components=1
 
 ######################################################### Go #########################################################
-RUN mkdir -p "$GOPATH" \
-    && wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r '.[0].version').linux-amd64.tar.gz" | tar -xz -C "$CODER_LIB" \
-    && go install golang.org/x/tools/gopls@latest
+# Install Go and gopls, then keep only the gopls binary (drop module/build caches).
+RUN wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r '.[0].version').linux-amd64.tar.gz" | tar -xz -C "$CODER_LIB" \
+    && mkdir -p "$GOPATH" \
+    && go install golang.org/x/tools/gopls@latest \
+    && find "$GOPATH" -mindepth 1 -maxdepth 1 ! -name bin -exec rm -rf {} + \
+    && rm -rf "$HOME/.cache"
 
 ######################################################### Android #########################################################
 RUN mkdir -p "$CODER_LIB/android" \
@@ -123,9 +106,72 @@ RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
     && npm install -g pnpm \
     && npm config set registry https://registry.npmmirror.com/ \
     && npm cache clean --force \
-    && rm -rf "$NVM_DIR/.cache" "$HOME/.npm" /tmp/*
+    && rm -rf "$NVM_DIR/.cache" "$NVM_DIR/.git" "$HOME/.npm"
+
+############################# Final image #############################
+FROM ${BASE_IMAGE}
+USER 0:0
+
+ENV HOME=/root \
+    CODER_LIB=/env/lib \
+    JAVA_HOME=/env/lib/java \
+    GOROOT=/env/lib/go \
+    GOPATH=/root/.gopath \
+    ANDROID_HOME=/env/lib/android \
+    ANDROID_SDK_ROOT=/env/lib/android \
+    ANDROID_CMDLINE_TOOLS_ROOT=/env/lib/android/cmdline-tools/latest \
+    FLUTTER_ROOT=/env/lib/flutter \
+    FLUTTER_ROOT_USAGE_WARNING=false \
+    RUSTUP_HOME=/env/lib/rust/rustup \
+    CARGO_HOME=/env/lib/rust/cargo \
+    NVM_DIR=/env/lib/nvm \
+    NODE_HOME=/usr/local/lib/node/current \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
+
+WORKDIR /root
+SHELL ["/bin/bash","-o","pipefail","-c"]
+
+# Locales + runtime packages + GitHub CLI, all in one layer cleaned in-place.
+RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
+           -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' \
+           -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' \
+           -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen \
+    && locale-gen \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+       bash-completion python3 python3-pip python3-venv \
+       wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
+       libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
+       file 7zip \
+    && mkdir -p -m 755 /etc/apt/keyrings \
+    && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && mkdir -p -m 755 /etc/apt/sources.list.d \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/doc/* /usr/share/man/* /usr/share/info/*
+
+# Pull in the prebuilt toolchains (clean trees only — no build/download caches).
+COPY --from=builder /env/lib /env/lib
+COPY --from=builder /usr/local/lib/node /usr/local/lib/node
+COPY --from=builder /root/.gopath/bin /root/.gopath/bin
+
+# Restore the few bits of per-user state that don't live under /env/lib.
+# (Flutter finds the SDK via ANDROID_SDK_ROOT/ANDROID_HOME; nvm is sourced by the profile script.)
+RUN git config --global --add safe.directory "$FLUTTER_ROOT" \
+    && npm config set registry https://registry.npmmirror.com/
+
+######################################################### Install opencode #########################################################
+RUN curl -fsSL https://opencode.ai/install | bash \
+    && rm -rf "$HOME/.cache" /tmp/*
 
 ######################################################### code-server extensions #########################################################
+# Built in the final stage so its node_modules / npm cache never persist in a layer.
 RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/scrcpy_sidebar \
     && cd /tmp/scrcpy_sidebar \
     && npm install \
@@ -151,6 +197,7 @@ export GOROOT
 if [ -z "${GOPATH:-}" ]; then
   GOPATH=/root/.gopath
 fi
+export GOPATH
 if [ -z "${ANDROID_HOME:-}" ]; then
   ANDROID_HOME="$CODER_LIB/android"
 fi
@@ -171,7 +218,6 @@ if [ -z "${FLUTTER_ROOT_USAGE_WARNING:-}" ]; then
   FLUTTER_ROOT_USAGE_WARNING=false
 fi
 export FLUTTER_ROOT_USAGE_WARNING
-export FLUTTER_STORAGE_BASE_URL
 if [ -z "${RUSTUP_HOME:-}" ]; then
   RUSTUP_HOME="$CODER_LIB/rust/rustup"
 fi
@@ -267,9 +313,3 @@ if [ -r /etc/profile.d/99-coder-shell.sh ]; then
   . /etc/profile.d/99-coder-shell.sh
 fi
 EOF
-
-######################################################### Filesystem cleanup #########################################################
-RUN rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/* /var/cache/apt/* /var/tmp/* /tmp/* /var/lib/apt/lists/* \
-    && rm -rf "$CODER_LIB/nvm/.git" "$HOME/.cache" "$HOME/.npm" || true \
-    && apt clean
-
