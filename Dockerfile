@@ -141,10 +141,10 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && locale-gen \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-       bash-completion python3 python3-pip python3-venv \
+       bash-completion python3 python3-pip python3-venv pipx \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-       file 7zip \
+       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -154,8 +154,21 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && apt-get install -y --no-install-recommends gh \
     && apt-get purge -y vim-tiny \
     && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+    && git lfs install --system \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/doc/* /usr/share/man/* /usr/share/info/*
+    && find /usr/share/doc -mindepth 1 -maxdepth 1 ! -name fzf -exec rm -rf {} + \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/man/* /usr/share/info/*
+
+######################################################### Extra CLI tools (latest release binaries) #########################################################
+# uv (Astral) + yq (mikefarah): resolve the newest GitHub release tag, then fetch the binary.
+RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/uv/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_TAG}/uv-x86_64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin --strip-components=1 \
+    && YQ_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/mikefarah/yq/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_TAG}/yq_linux_amd64" -o /usr/local/bin/yq \
+    && chmod +x /usr/local/bin/yq \
+    && uv --version && uvx --version && yq --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
@@ -172,7 +185,8 @@ RUN curl -fsSL https://opencode.ai/install | bash \
     && rm -rf "$HOME/.cache" /tmp/*
 # The installer's PATH edit targets shell rc files this image doesn't use;
 # put opencode on PATH the same way every other toolchain is handled.
-ENV PATH="$HOME/.opencode/bin:$PATH"
+# ~/.local/bin holds pipx-installed apps and `uv tool install` shims.
+ENV PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
 
 ######################################################### code-server extensions #########################################################
 # Built in the final stage so its node_modules / npm cache never persist in a layer.
@@ -242,7 +256,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$HOME/.opencode/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
@@ -291,6 +305,12 @@ if [ -s "$NVM_DIR/nvm.sh" ]; then
 fi
 if [ -s "$NVM_DIR/bash_completion" ]; then
   . "$NVM_DIR/bash_completion"
+fi
+
+if command -v fzf >/dev/null 2>&1; then
+  for f in /usr/share/doc/fzf/examples/key-bindings.bash /usr/share/doc/fzf/examples/completion.bash; do
+    [ -f "$f" ] && . "$f"
+  done
 fi
 
 git_prompt_info() {
