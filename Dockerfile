@@ -44,6 +44,8 @@ RUN mkdir -p "$JAVA_HOME" \
 RUN wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r '.[0].version').linux-amd64.tar.gz" | tar -xz -C "$CODER_LIB" \
     && mkdir -p "$GOPATH" \
     && go install golang.org/x/tools/gopls@latest \
+    && go install golang.org/x/tools/cmd/goimports@latest \
+    && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
     && find "$GOPATH" -mindepth 1 -maxdepth 1 ! -name bin -exec rm -rf {} + \
     && rm -rf "$HOME/.cache"
 
@@ -89,6 +91,7 @@ RUN mkdir -p "$RUSTUP_HOME" "$CARGO_HOME" \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --no-modify-path --default-toolchain stable \
     && rustup component add rust-src --toolchain stable \
     && rustup component add rust-analyzer --toolchain stable \
+    && rustup component add rustfmt clippy --toolchain stable \
     && rustup component remove rust-docs --toolchain stable || true \
     && rm -rf "$CARGO_HOME/registry" "$CARGO_HOME/git" "$RUSTUP_HOME/tmp" \
     && rm -rf /tmp/*
@@ -144,7 +147,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
        bash-completion python3 python3-pip python3-venv pipx \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb \
+       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -161,14 +164,20 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/man/* /usr/share/info/*
 
 ######################################################### Extra CLI tools (latest release binaries) #########################################################
-# uv (Astral) + yq (mikefarah): resolve the newest GitHub release tag, then fetch the binary.
+# uv (Astral) + yq + difftastic + ruff: resolve the newest GitHub release tag, then fetch the binary.
 RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/uv/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_TAG}/uv-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin --strip-components=1 \
     && YQ_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/mikefarah/yq/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_TAG}/yq_linux_amd64" -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq \
-    && uv --version && uvx --version && yq --version
+    && DIFFT_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Wilfred/difftastic/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_TAG}/difft-x86_64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin \
+    && RUFF_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/ruff/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/astral-sh/ruff/releases/download/${RUFF_TAG}/ruff-x86_64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin --strip-components=1 \
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
@@ -179,6 +188,11 @@ COPY --from=builder /root/.gopath/bin /root/.gopath/bin
 # (Flutter finds the SDK via ANDROID_SDK_ROOT/ANDROID_HOME; nvm is sourced by the profile script.)
 RUN git config --global --add safe.directory "$FLUTTER_ROOT" \
     && npm config set registry https://registry.npmmirror.com/
+
+######################################################### ast-grep (needs the copied node toolchain) #########################################################
+RUN npm install -g @ast-grep/cli \
+    && npm cache clean --force \
+    && rm -rf "$HOME/.npm" "$HOME/.cache"
 
 ######################################################### Install opencode #########################################################
 RUN curl -fsSL https://opencode.ai/install | bash \
