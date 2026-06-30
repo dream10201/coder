@@ -151,11 +151,6 @@ export GOROOT
 if [ -z "${GOPATH:-}" ]; then
   GOPATH=/root/.gopath
 fi
-export GOPATH
-# if [ -z "${GOPROXY:-}" ]; then
-#   GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
-# fi
-export GOPROXY
 if [ -z "${ANDROID_HOME:-}" ]; then
   ANDROID_HOME="$CODER_LIB/android"
 fi
