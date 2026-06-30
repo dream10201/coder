@@ -6,14 +6,14 @@ ENV HOME=/root \
     JAVA_HOME=/env/lib/java \
     GOROOT=/env/lib/go \
     GOPATH=/root/.gopath \
-    GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct \
+    # GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct \
     ANDROID_HOME=/env/lib/android \
     ANDROID_SDK_ROOT=/env/lib/android \
     ANDROID_CMDLINE_TOOLS_ROOT=/env/lib/android/cmdline-tools/latest \
     FLUTTER_ROOT=/env/lib/flutter \
     FLUTTER_ROOT_USAGE_WARNING=false \
-    PUB_HOSTED_URL=https://pub.flutter-io.cn \
-    FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
+    # PUB_HOSTED_URL=https://pub.flutter-io.cn \
+    # FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn \
     RUSTUP_HOME=/env/lib/rust/rustup \
     CARGO_HOME=/env/lib/rust/cargo \
     NVM_DIR=/env/lib/nvm \
@@ -155,9 +155,9 @@ if [ -z "${GOPATH:-}" ]; then
   GOPATH=/root/.gopath
 fi
 export GOPATH
-if [ -z "${GOPROXY:-}" ]; then
-  GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
-fi
+# if [ -z "${GOPROXY:-}" ]; then
+#   GOPROXY=https://goproxy.cn,https://goproxy.io,https://proxy.golang.org,direct
+# fi
 export GOPROXY
 if [ -z "${ANDROID_HOME:-}" ]; then
   ANDROID_HOME="$CODER_LIB/android"
@@ -179,13 +179,13 @@ if [ -z "${FLUTTER_ROOT_USAGE_WARNING:-}" ]; then
   FLUTTER_ROOT_USAGE_WARNING=false
 fi
 export FLUTTER_ROOT_USAGE_WARNING
-if [ -z "${PUB_HOSTED_URL:-}" ]; then
-  PUB_HOSTED_URL=https://pub.flutter-io.cn
-fi
-export PUB_HOSTED_URL
-if [ -z "${FLUTTER_STORAGE_BASE_URL:-}" ]; then
-  FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
-fi
+# if [ -z "${PUB_HOSTED_URL:-}" ]; then
+#   PUB_HOSTED_URL=https://pub.flutter-io.cn
+# fi
+# export PUB_HOSTED_URL
+# if [ -z "${FLUTTER_STORAGE_BASE_URL:-}" ]; then
+#   FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+# fi
 export FLUTTER_STORAGE_BASE_URL
 if [ -z "${RUSTUP_HOME:-}" ]; then
   RUSTUP_HOME="$CODER_LIB/rust/rustup"
