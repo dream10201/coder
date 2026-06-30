@@ -28,7 +28,7 @@ SHELL ["/bin/bash","-o","pipefail","-c"]
 # Minimal build-time deps only; heavy runtime packages live in the final stage.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-       ca-certificates curl wget jq git unzip xz-utils python3 file \
+       ca-certificates curl wget jq git unzip xz-utils python3 file libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p "$CODER_LIB"
@@ -170,6 +170,9 @@ RUN git config --global --add safe.directory "$FLUTTER_ROOT" \
 ######################################################### Install opencode #########################################################
 RUN curl -fsSL https://opencode.ai/install | bash \
     && rm -rf "$HOME/.cache" /tmp/*
+# The installer's PATH edit targets shell rc files this image doesn't use;
+# put opencode on PATH the same way every other toolchain is handled.
+ENV PATH="$HOME/.opencode/bin:$PATH"
 
 ######################################################### code-server extensions #########################################################
 # Built in the final stage so its node_modules / npm cache never persist in a layer.
@@ -239,7 +242,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$HOME/.opencode/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
