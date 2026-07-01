@@ -194,14 +194,6 @@ RUN npm install -g @ast-grep/cli \
     && npm cache clean --force \
     && rm -rf "$HOME/.npm" "$HOME/.cache"
 
-######################################################### Install opencode #########################################################
-RUN curl -fsSL https://opencode.ai/install | bash \
-    && rm -rf "$HOME/.cache" /tmp/*
-# The installer's PATH edit targets shell rc files this image doesn't use;
-# put opencode on PATH the same way every other toolchain is handled.
-# ~/.local/bin holds pipx-installed apps and `uv tool install` shims.
-ENV PATH="$HOME/.opencode/bin:$HOME/.local/bin:$PATH"
-
 ######################################################### code-server extensions #########################################################
 # Built in the final stage so its node_modules / npm cache never persist in a layer.
 RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/scrcpy_sidebar \
