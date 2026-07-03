@@ -84,8 +84,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          build-args: |
+            BASE_IMAGE=docker.io/codercom/code-server:${{ steps.codeserver.outputs.latest }}
           tags: |
             ghcr.io/dream10201/coder:latest
+            ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.latest }}
 
       # 8. 保存新版本号（仅自动触发且版本更新时）
       - name: Save new version
