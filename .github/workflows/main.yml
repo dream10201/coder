@@ -25,6 +25,7 @@ jobs:
         run: |
           LATEST=$(curl -s https://api.github.com/repos/coder/code-server/releases/latest | jq -r '.tag_name')
           echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "image_tag=${LATEST#v}" >> $GITHUB_OUTPUT
 
       # 2. 读取本地保存的版本号
       - name: Read local version
@@ -85,10 +86,11 @@ jobs:
         with:
           push: true
           build-args: |
-            BASE_IMAGE=docker.io/codercom/code-server:${{ steps.codeserver.outputs.latest }}
+            BASE_IMAGE=docker.io/codercom/code-server:${{ steps.codeserver.outputs.image_tag }}
           tags: |
             ghcr.io/dream10201/coder:latest
             ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.latest }}
+            ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.image_tag }}
 
       # 8. 保存新版本号（仅自动触发且版本更新时）
       - name: Save new version
