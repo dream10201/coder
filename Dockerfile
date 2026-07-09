@@ -148,6 +148,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
        file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags \
+    && curl -fsSL https://claude.ai/install.sh | bash \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
