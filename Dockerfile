@@ -131,7 +131,7 @@ ENV HOME=/root \
     NODE_HOME=/usr/local/lib/node/current \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
-ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$CODER_LIB/claude:$PATH"
 
 WORKDIR /root
 SHELL ["/bin/bash","-o","pipefail","-c"]
@@ -148,7 +148,6 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
        file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags \
-    && curl -fsSL https://claude.ai/install.sh | bash \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -178,7 +177,12 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && RUFF_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/ruff/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/ruff/releases/download/${RUFF_TAG}/ruff-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin --strip-components=1 \
-    && uv --version && uvx --version && yq --version && difft --version && ruff --version
+    && mkdir -p "$CODER_LIB/claude" \
+    && CLAUDE_VERSION="$(curl -fsSL https://downloads.claude.ai/claude-code-releases/latest)" \
+    && curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude" -o "$CODER_LIB/claude/claude" \
+    && echo "$(curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/manifest.json" | jq -r '.platforms["linux-x64"].checksum')  $CODER_LIB/claude/claude" | sha256sum -c - \
+    && chmod +x "$CODER_LIB/claude/claude" \
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version && claude --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
@@ -263,7 +267,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$CODER_LIB/claude" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
