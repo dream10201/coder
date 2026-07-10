@@ -143,6 +143,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
            -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen \
     && locale-gen \
     && apt-get update \
+    && apt-get remove nano -y \
     && apt-get install -y --no-install-recommends \
        bash-completion python3 python3-pip python3-venv pipx netcat-openbsd iputils-ping \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
