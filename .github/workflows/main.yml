@@ -68,12 +68,12 @@ jobs:
       # 5. Buildx
       - name: Set up Docker Buildx
         if: steps.check.outcome == 'success'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # 6. Login GHCR
       - name: Login to GitHub Container Registry
         if: steps.check.outcome == 'success'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -82,7 +82,7 @@ jobs:
       # 7. 构建并推送
       - name: Release and push
         if: steps.check.outcome == 'success'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           build-args: |
@@ -147,11 +147,11 @@ jobs:
 
       - name: Set up Docker Buildx
         if: steps.check.outcome == 'success'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to GitHub Container Registry
         if: steps.check.outcome == 'success'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -159,7 +159,7 @@ jobs:
 
       - name: Release and push (arm64)
         if: steps.check.outcome == 'success'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           file: Dockerfile.arm64
