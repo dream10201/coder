@@ -195,9 +195,8 @@ COPY --from=builder /root/.gopath/bin /root/.gopath/bin
 RUN git config --global --add safe.directory "$FLUTTER_ROOT" \
     && npm config set registry https://registry.npmmirror.com/
 
-######################################################### ast-grep + Copilot CLI (need the copied node toolchain) #########################################################
-RUN npm install -g @ast-grep/cli @github/copilot \
-    && copilot --version \
+######################################################### ast-grep (need the copied node toolchain) #########################################################
+RUN npm install -g @ast-grep/cli \
     && npm cache clean --force \
     && rm -rf "$HOME/.npm" "$HOME/.cache"
 

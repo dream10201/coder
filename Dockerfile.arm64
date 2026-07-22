@@ -148,9 +148,8 @@ COPY --from=builder /root/.gopath/bin /root/.gopath/bin
 # (nvm is sourced by the profile script.)
 RUN npm config set registry https://registry.npmmirror.com/
 
-######################################################### ast-grep + Copilot CLI (need the copied node toolchain) #########################################################
-RUN npm install -g @ast-grep/cli @github/copilot \
-    && copilot --version \
+######################################################### ast-grep (need the copied node toolchain) #########################################################
+RUN npm install -g @ast-grep/cli \
     && npm cache clean --force \
     && rm -rf "$HOME/.npm" "$HOME/.cache"
 
