@@ -92,6 +92,85 @@ jobs:
             ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.latest }}
             ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.image_tag }}
 
+  docker-arm64:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      id-token: write
+      packages: write
+      contents: read
+      attestations: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Fetch latest code-server version
+        id: codeserver
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/coder/code-server/releases/latest | jq -r '.tag_name')
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "image_tag=${LATEST#v}" >> $GITHUB_OUTPUT
+
+      - name: Read local version
+        id: localver
+        run: |
+          if [ -f .github/version ]; then
+            LOCAL=$(cat .github/version)
+          else
+            LOCAL="none"
+          fi
+          echo "local=$LOCAL" >> $GITHUB_OUTPUT
+
+      - name: Check version difference
+        run: |
+          echo "Trigger: ${{ github.event_name }}"
+          echo "Latest:  ${{ steps.codeserver.outputs.latest }}"
+          echo "Local:   ${{ steps.localver.outputs.local }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "push" ]; then
+            echo "Manual or push trigger → 强制构建"
+            exit 0
+          fi
+
+          if [ "${{ steps.codeserver.outputs.latest }}" = "${{ steps.localver.outputs.local }}" ]; then
+            echo "自动触发且版本相同 → 跳过构建"
+            exit 1
+          fi
+
+          echo "自动触发且版本更新 → 构建"
+        continue-on-error: true
+        id: check
+
+      - name: Stop if no build needed
+        if: steps.check.outcome == 'failure'
+        run: echo "No build needed. Exiting."
+
+      - name: Set up Docker Buildx
+        if: steps.check.outcome == 'success'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: steps.check.outcome == 'success'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Release and push (arm64)
+        if: steps.check.outcome == 'success'
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          file: Dockerfile.arm64
+          platforms: linux/arm64
+          build-args: |
+            BASE_IMAGE=docker.io/codercom/code-server:${{ steps.codeserver.outputs.image_tag }}
+          tags: |
+            ghcr.io/dream10201/coder:latest-arm64
+            ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.latest }}-arm64
+            ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.image_tag }}-arm64
+
       # 8. 保存新版本号（仅自动触发且版本更新时）
       - name: Save new version
         if: steps.check.outcome == 'success' && github.event_name != 'workflow_dispatch' && github.event_name != 'push'

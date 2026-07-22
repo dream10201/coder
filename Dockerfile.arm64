@@ -1,0 +1,274 @@
+ARG BASE_IMAGE=docker.io/codercom/code-server:latest
+
+############################# Builder: toolchains -> /env/lib #############################
+# arm64 variant: no Android SDK / Flutter (no official Linux arm64 releases upstream).
+FROM ${BASE_IMAGE} AS builder
+USER 0:0
+
+ENV HOME=/root \
+    CODER_LIB=/env/lib \
+    JAVA_HOME=/env/lib/java \
+    GOROOT=/env/lib/go \
+    GOPATH=/root/.gopath \
+    RUSTUP_HOME=/env/lib/rust/rustup \
+    CARGO_HOME=/env/lib/rust/cargo \
+    NVM_DIR=/env/lib/nvm \
+    NODE_HOME=/usr/local/lib/node/current \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$CARGO_HOME/bin:$PATH"
+
+WORKDIR /root
+SHELL ["/bin/bash","-o","pipefail","-c"]
+
+# Minimal build-time deps only; heavy runtime packages live in the final stage.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates curl wget jq git unzip xz-utils python3 file libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p "$CODER_LIB"
+
+######################################################### Java #########################################################
+RUN mkdir -p "$JAVA_HOME" \
+    && JAVA_FEATURE_VERSION="$(curl -fsSL https://api.adoptium.net/v3/info/available_releases | jq -r '.most_recent_feature_release')" \
+    && curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_FEATURE_VERSION}/ga/linux/aarch64/jdk/hotspot/normal/eclipse" \
+      | tar -xz -C "$JAVA_HOME" --strip-components=1
+
+######################################################### Go #########################################################
+# Install Go and gopls, then keep only the gopls binary (drop module/build caches).
+RUN wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r '.[0].version').linux-arm64.tar.gz" | tar -xz -C "$CODER_LIB" \
+    && mkdir -p "$GOPATH" \
+    && go install golang.org/x/tools/gopls@latest \
+    && go install golang.org/x/tools/cmd/goimports@latest \
+    && go install mvdan.cc/sh/v3/cmd/shfmt@latest \
+    && find "$GOPATH" -mindepth 1 -maxdepth 1 ! -name bin -exec rm -rf {} + \
+    && rm -rf "$HOME/.cache"
+
+######################################################### Rust #########################################################
+RUN mkdir -p "$RUSTUP_HOME" "$CARGO_HOME" \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -q -y --no-modify-path --default-toolchain stable \
+    && rustup component add rust-src --toolchain stable \
+    && rustup component add rust-analyzer --toolchain stable \
+    && rustup component add rustfmt clippy --toolchain stable \
+    && rustup component remove rust-docs --toolchain stable || true \
+    && rm -rf "$CARGO_HOME/registry" "$CARGO_HOME/git" "$RUSTUP_HOME/tmp" \
+    && rm -rf /tmp/*
+
+######################################################### Node js #########################################################
+RUN mkdir -p "$NVM_DIR" /usr/local/lib/node \
+    && NVM_VERSION="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/nvm-sh/nvm/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash \
+    && [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" \
+    && nvm install node \
+    && nvm alias default node \
+    && NODE_VERSION="$(nvm current)" \
+    && ln -sfn "$NVM_DIR/versions/node/$NODE_VERSION" /usr/local/lib/node/current \
+    && nvm use default \
+    && npm install -g pnpm \
+    && npm config set registry https://registry.npmmirror.com/ \
+    && npm cache clean --force \
+    && rm -rf "$NVM_DIR/.cache" "$NVM_DIR/.git" "$HOME/.npm"
+
+############################# Final image #############################
+FROM ${BASE_IMAGE}
+USER 0:0
+
+ENV HOME=/root \
+    CODER_LIB=/env/lib \
+    JAVA_HOME=/env/lib/java \
+    GOROOT=/env/lib/go \
+    GOPATH=/root/.gopath \
+    RUSTUP_HOME=/env/lib/rust/rustup \
+    CARGO_HOME=/env/lib/rust/cargo \
+    NVM_DIR=/env/lib/nvm \
+    NODE_HOME=/usr/local/lib/node/current \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$CARGO_HOME/bin:$CODER_LIB/claude:$PATH"
+
+WORKDIR /root
+SHELL ["/bin/bash","-o","pipefail","-c"]
+
+# Locales + runtime packages + GitHub CLI, all in one layer cleaned in-place.
+RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
+           -e 's|^# zh_TW.UTF-8 UTF-8|zh_TW.UTF-8 UTF-8|' \
+           -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' \
+           -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen \
+    && locale-gen \
+    && apt-get update \
+    && apt-get remove nano -y \
+    && apt-get install -y --no-install-recommends \
+       bash-completion python3 python3-pip python3-venv pipx netcat-openbsd iputils-ping \
+       wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
+       libatomic1 ripgrep build-essential shellcheck sshpass \
+       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags \
+    && mkdir -p -m 755 /etc/apt/keyrings \
+    && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && mkdir -p -m 755 /etc/apt/sources.list.d \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gh \
+    && apt-get purge -y vim-tiny \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+    && git lfs install --system \
+    && apt-get clean \
+    && find /usr/share/doc -mindepth 1 -maxdepth 1 ! -name fzf -exec rm -rf {} + \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/man/* /usr/share/info/*
+
+######################################################### Extra CLI tools (latest release binaries) #########################################################
+# uv (Astral) + yq + difftastic + ruff: resolve the newest GitHub release tag, then fetch the binary.
+RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/uv/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_TAG}/uv-aarch64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin --strip-components=1 \
+    && YQ_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/mikefarah/yq/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_TAG}/yq_linux_arm64" -o /usr/local/bin/yq \
+    && chmod +x /usr/local/bin/yq \
+    && DIFFT_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Wilfred/difftastic/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_TAG}/difft-aarch64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin \
+    && RUFF_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/ruff/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/astral-sh/ruff/releases/download/${RUFF_TAG}/ruff-aarch64-unknown-linux-gnu.tar.gz" \
+       | tar -xz -C /usr/local/bin --strip-components=1 \
+    && mkdir -p "$CODER_LIB/claude" \
+    && CLAUDE_VERSION="$(curl -fsSL https://downloads.claude.ai/claude-code-releases/latest)" \
+    && curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/linux-arm64/claude" -o "$CODER_LIB/claude/claude" \
+    && echo "$(curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/manifest.json" | jq -r '.platforms["linux-arm64"].checksum')  $CODER_LIB/claude/claude" | sha256sum -c - \
+    && chmod +x "$CODER_LIB/claude/claude" \
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version && claude --version
+
+# Pull in the prebuilt toolchains (clean trees only — no build/download caches).
+COPY --from=builder /env/lib /env/lib
+COPY --from=builder /usr/local/lib/node /usr/local/lib/node
+COPY --from=builder /root/.gopath/bin /root/.gopath/bin
+
+# Restore the few bits of per-user state that don't live under /env/lib.
+# (nvm is sourced by the profile script.)
+RUN npm config set registry https://registry.npmmirror.com/
+
+######################################################### ast-grep (needs the copied node toolchain) #########################################################
+RUN npm install -g @ast-grep/cli \
+    && npm cache clean --force \
+    && rm -rf "$HOME/.npm" "$HOME/.cache"
+
+######################################################### Profile scripts #########################################################
+RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
+if [ -z "${CODER_LIB:-}" ]; then
+  CODER_LIB=/env/lib
+fi
+export CODER_LIB
+if [ -z "${JAVA_HOME:-}" ]; then
+  JAVA_HOME="$CODER_LIB/java"
+fi
+export JAVA_HOME
+if [ -z "${GOROOT:-}" ]; then
+  GOROOT="$CODER_LIB/go"
+fi
+export GOROOT
+if [ -z "${GOPATH:-}" ]; then
+  GOPATH=/root/.gopath
+fi
+export GOPATH
+if [ -z "${RUSTUP_HOME:-}" ]; then
+  RUSTUP_HOME="$CODER_LIB/rust/rustup"
+fi
+export RUSTUP_HOME
+if [ -z "${CARGO_HOME:-}" ]; then
+  CARGO_HOME="$CODER_LIB/rust/cargo"
+fi
+export CARGO_HOME
+if [ -z "${NVM_DIR:-}" ]; then
+  NVM_DIR="$CODER_LIB/nvm"
+fi
+export NVM_DIR
+if [ -z "${NODE_HOME:-}" ]; then
+  NODE_HOME=/usr/local/lib/node/current
+fi
+export NODE_HOME
+
+if [ -z "${PATH:-}" ]; then
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+fi
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$CARGO_HOME/bin" "$CODER_LIB/claude" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
+  if [ -d "$dir" ]; then
+    case ":$PATH:" in
+      *":$dir:"*) ;;
+      *) PATH="$dir:$PATH" ;;
+    esac
+  fi
+done
+export PATH
+
+case $- in
+  *i*) CODER_INTERACTIVE=1 ;;
+  *) CODER_INTERACTIVE=0 ;;
+esac
+
+if [ "${CODER_INTERACTIVE:-0}" -ne 1 ] || [ -z "${BASH_VERSION:-}" ]; then
+  return
+fi
+
+if [ -n "${CODER_SHELL_INIT_DONE:-}" ]; then
+  return
+fi
+
+CODER_SHELL_INIT_DONE=1
+export SHELL=/bin/bash
+shopt -s checkwinsize
+if [ -z "${TERM:-}" ]; then
+  export TERM=xterm-256color
+fi
+if command -v dircolors >/dev/null 2>&1; then
+  eval "$(dircolors)"
+fi
+alias ls='ls --color=auto'
+alias ll='ls --color=auto -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
+alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
+alias golinux_arm64='CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o app_arm64 .'
+alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
+
+if [ -f /etc/bash_completion ]; then
+  . /etc/bash_completion
+fi
+if [ -f /usr/share/bash-completion/completions/git ]; then
+  . /usr/share/bash-completion/completions/git
+fi
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+fi
+if [ -s "$NVM_DIR/bash_completion" ]; then
+  . "$NVM_DIR/bash_completion"
+fi
+
+if command -v fzf >/dev/null 2>&1; then
+  for f in /usr/share/doc/fzf/examples/key-bindings.bash /usr/share/doc/fzf/examples/completion.bash; do
+    [ -f "$f" ] && . "$f"
+  done
+fi
+
+git_prompt_info() {
+  local branch dirty yellow green reset
+  branch=$(git branch --show-current 2>/dev/null) || return
+  [ -n "$branch" ] || return
+  dirty=$(git status --porcelain 2>/dev/null)
+  yellow=$(printf '\001\033[0;33m\002')
+  green=$(printf '\001\033[0;32m\002')
+  reset=$(printf '\001\033[0m\002')
+  if [ -n "$dirty" ]; then
+    printf '%s(%s ✗)%s' "$yellow" "$branch" "$reset"
+  else
+    printf '%s(%s ✓)%s' "$green" "$branch" "$reset"
+  fi
+}
+
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\] $(git_prompt_info)\n\$ '
+EOF
+
+RUN cat <<'EOF' >>/etc/bash.bashrc
+
+if [ -r /etc/profile.d/99-coder-shell.sh ]; then
+  . /etc/profile.d/99-coder-shell.sh
+fi
+EOF
