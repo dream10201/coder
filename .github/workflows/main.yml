@@ -173,7 +173,7 @@ jobs:
 
       # 8. 保存新版本号（仅自动触发且版本更新时）
       - name: Save new version
-        if: steps.check.outcome == 'success' #&& github.event_name != 'workflow_dispatch' && github.event_name != 'push'
+        if: steps.check.outcome == 'success' && github.event_name != 'workflow_dispatch' && github.event_name != 'push'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
