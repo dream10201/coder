@@ -142,13 +142,19 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
            -e 's|^# zh_CN.UTF-8 UTF-8|zh_CN.UTF-8 UTF-8|' \
            -e 's|^# zh_HK.UTF-8 UTF-8|zh_HK.UTF-8 UTF-8|' /etc/locale.gen \
     && locale-gen \
+    && if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+         sed -i 's/^Components: .*/Components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources; \
+       else \
+         sed -i -E 's/^(deb[^#]*) main(.*)$/\1 main contrib non-free non-free-firmware\2/' /etc/apt/sources.list; \
+       fi \
     && apt-get update \
     && apt-get remove nano -y \
     && apt-get install -y --no-install-recommends \
        bash-completion python3 python3-pip python3-venv pipx netcat-openbsd iputils-ping \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
-       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags \
+       file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags zstd \
+       ffmpeg libva-utils intel-media-va-driver-non-free libmfx-gen1.2 libvpl2 intel-gpu-tools \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
@@ -163,6 +169,25 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && apt-get clean \
     && find /usr/share/doc -mindepth 1 -maxdepth 1 ! -name fzf -exec rm -rf {} + \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/* /usr/share/man/* /usr/share/info/*
+
+######################################################### Intel OpenCL (official compute-runtime debs) #########################################################
+# Debian dropped intel-opencl-icd from trixie and bookworm's build is ancient, so pull
+# the latest official debs: IGC (compiler) + NEO (ICD, gmmlib, Level Zero runtime).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ocl-icd-libopencl1 clinfo \
+    && mkdir -p /tmp/intel-ocl \
+    && curl -fsSL https://api.github.com/repos/intel/intel-graphics-compiler/releases/latest \
+       | jq -r '.assets[].browser_download_url' \
+       | grep -E '/intel-igc-(core|opencl)-2_[^/]+_amd64\.deb$' \
+       | xargs -n1 curl -fsSLO --output-dir /tmp/intel-ocl \
+    && curl -fsSL https://api.github.com/repos/intel/compute-runtime/releases/latest \
+       | jq -r '.assets[].browser_download_url' \
+       | grep -E '/(intel-opencl-icd|libigdgmm12|libze-intel-gpu1)_[^/]+_amd64\.deb$' \
+       | xargs -n1 curl -fsSLO --output-dir /tmp/intel-ocl \
+    && apt-get install -y --no-install-recommends /tmp/intel-ocl/*.deb \
+    && rm -rf /tmp/intel-ocl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 ######################################################### Extra CLI tools (latest release binaries) #########################################################
 # uv (Astral) + yq + difftastic + ruff: resolve the newest GitHub release tag, then fetch the binary.
