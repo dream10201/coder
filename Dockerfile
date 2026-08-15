@@ -152,7 +152,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && apt-get install -y --no-install-recommends \
        bash-completion python3 python3-pip python3-venv pipx netcat-openbsd iputils-ping \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
-       libatomic1 ripgrep build-essential shellcheck sshpass binutils-aarch64-linux-gnu \
+       libatomic1 ripgrep build-essential shellcheck sshpass \
        file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags zstd \
        ffmpeg libva-utils intel-media-va-driver-non-free libmfx-gen1.2 libvpl2 intel-gpu-tools \
     && mkdir -p -m 755 /etc/apt/keyrings \
@@ -328,7 +328,6 @@ fi
 alias ls='ls --color=auto'
 alias ll='ls --color=auto -lhA --time-style "+%Y/%m/%d %H:%M:%S"'
 alias golinux='CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app .'
-alias golinux_arm64='CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o app_arm64 .'
 alias gowin='CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o app.exe .'
 
 if [ -f /etc/bash_completion ]; then
