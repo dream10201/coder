@@ -50,41 +50,54 @@ RUN wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r 
     && rm -rf "$HOME/.cache"
 
 ######################################################### Android #########################################################
+# INSTALL_ANDROID=true installs the full Android app toolchain: cmdline-tools +
+# build-tools + platforms here, plus the Flutter SDK below. Default false keeps
+# only platform-tools (adb/fastboot) fetched directly from Google.
+ARG INSTALL_ANDROID=false
 RUN mkdir -p "$CODER_LIB/android" \
-    && rm -rf /tmp/cmdline-tools /tmp/cmdline-tools.zip \
-    && CMDLINE_TOOLS_ZIP="$(curl -fsSL https://dl.google.com/android/repository/repository2-1.xml | grep -o 'commandlinetools-linux-[0-9]\+_latest.zip' | sort -Vu | tail -n1)" \
-    && curl -fsSL "https://dl.google.com/android/repository/${CMDLINE_TOOLS_ZIP}" -o /tmp/cmdline-tools.zip \
-    && unzip -q /tmp/cmdline-tools.zip -d /tmp \
-    && rm -f /tmp/cmdline-tools.zip \
-    && rm -rf "$CODER_LIB/android/cmdline-tools" \
-    && mkdir -p "$CODER_LIB/android/cmdline-tools" \
-    && mv /tmp/cmdline-tools "$CODER_LIB/android/cmdline-tools/latest" \
-    && chmod +x "$ANDROID_CMDLINE_TOOLS_ROOT/bin/"* \
-    && SDKMANAGER="$ANDROID_CMDLINE_TOOLS_ROOT/bin/sdkmanager" \
-    && set +o pipefail \
-    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses >/dev/null \
-    && set -o pipefail \
-    && BUILD_TOOLS_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +build-tools;[0-9.]+/ {print $1}' | sort -V | tail -n1) \
-    && PLATFORM_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +platforms;android-[0-9]+/ {print $1}' | sort -V | tail -n1) \
-    && test -n "$BUILD_TOOLS_VERSION" \
-    && test -n "$PLATFORM_VERSION" \
-    && set +o pipefail \
-    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" "platform-tools" "$BUILD_TOOLS_VERSION" "$PLATFORM_VERSION" \
-    && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses \
-    && set -o pipefail
+    && if [ "$INSTALL_ANDROID" != "true" ]; then \
+         curl -fsSL https://dl.google.com/android/repository/platform-tools-latest-linux.zip -o /tmp/platform-tools.zip \
+         && unzip -q /tmp/platform-tools.zip -d "$CODER_LIB/android" \
+         && rm -f /tmp/platform-tools.zip; \
+       else \
+         rm -rf /tmp/cmdline-tools /tmp/cmdline-tools.zip \
+         && CMDLINE_TOOLS_ZIP="$(curl -fsSL https://dl.google.com/android/repository/repository2-1.xml | grep -o 'commandlinetools-linux-[0-9]\+_latest.zip' | sort -Vu | tail -n1)" \
+         && curl -fsSL "https://dl.google.com/android/repository/${CMDLINE_TOOLS_ZIP}" -o /tmp/cmdline-tools.zip \
+         && unzip -q /tmp/cmdline-tools.zip -d /tmp \
+         && rm -f /tmp/cmdline-tools.zip \
+         && rm -rf "$CODER_LIB/android/cmdline-tools" \
+         && mkdir -p "$CODER_LIB/android/cmdline-tools" \
+         && mv /tmp/cmdline-tools "$CODER_LIB/android/cmdline-tools/latest" \
+         && chmod +x "$ANDROID_CMDLINE_TOOLS_ROOT/bin/"* \
+         && SDKMANAGER="$ANDROID_CMDLINE_TOOLS_ROOT/bin/sdkmanager" \
+         && set +o pipefail \
+         && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses >/dev/null \
+         && set -o pipefail \
+         && BUILD_TOOLS_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +build-tools[;\/][0-9.]+ / {print $1}' | sort -V | tail -n1) \
+         && PLATFORM_VERSION=$("$SDKMANAGER" --sdk_root="$CODER_LIB/android" --list | awk '/^ +platforms[;\/]android-[0-9]+ / {print $1}' | sort -V | tail -n1) \
+         && test -n "$BUILD_TOOLS_VERSION" \
+         && test -n "$PLATFORM_VERSION" \
+         && set +o pipefail \
+         && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" "platform-tools" "$BUILD_TOOLS_VERSION" "$PLATFORM_VERSION" \
+         && yes | "$SDKMANAGER" --sdk_root="$CODER_LIB/android" --licenses \
+         && set -o pipefail; \
+       fi
 
 ######################################################### Flutter #########################################################
-RUN touch /.dockerenv \
-    && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json \
-      | python3 -c "import sys,json; data=json.load(sys.stdin); stable=data['current_release']['stable']; release=next(item for item in data['releases'] if item['hash']==stable); print(data['base_url']+'/'+release['archive'])" \
-      | xargs curl -L \
-      | tar xJ -C "$CODER_LIB/" \
-    && git config --global --add safe.directory "$CODER_LIB/flutter" \
-    && flutter config --android-sdk "$CODER_LIB/android" \
-    && flutter precache --android \
-    && rm -rf "$FLUTTER_ROOT/bin/cache/downloads" \
-    && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name 'linux-arm*' \) -exec rm -rf {} + \
-    && rm -rf /tmp/*
+# Installed only with INSTALL_ANDROID=true (see the Android section above).
+RUN if [ "$INSTALL_ANDROID" = "true" ]; then \
+      touch /.dockerenv \
+      && curl -sL https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json \
+        | python3 -c "import sys,json; data=json.load(sys.stdin); stable=data['current_release']['stable']; release=next(item for item in data['releases'] if item['hash']==stable); print(data['base_url']+'/'+release['archive'])" \
+        | xargs curl -L \
+        | tar xJ -C "$CODER_LIB/" \
+      && git config --global --add safe.directory "$CODER_LIB/flutter" \
+      && flutter config --android-sdk "$CODER_LIB/android" \
+      && flutter precache --android \
+      && rm -rf "$FLUTTER_ROOT/bin/cache/downloads" \
+      && find "$FLUTTER_ROOT/bin/cache/artifacts/engine" -maxdepth 1 -type d \( -name '*darwin*' -o -name '*ios*' -o -name '*windows*' -o -name 'linux-arm*' \) -exec rm -rf {} + \
+      && rm -rf /tmp/*; \
+    fi
 
 ######################################################### Rust #########################################################
 RUN mkdir -p "$RUSTUP_HOME" "$CARGO_HOME" \

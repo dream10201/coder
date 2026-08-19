@@ -87,6 +87,7 @@ jobs:
           push: true
           build-args: |
             BASE_IMAGE=docker.io/codercom/code-server:${{ steps.codeserver.outputs.image_tag }}
+            INSTALL_ANDROID=false
           tags: |
             ghcr.io/dream10201/coder:latest
             ghcr.io/dream10201/coder:${{ steps.codeserver.outputs.latest }}
