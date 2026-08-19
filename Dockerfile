@@ -189,13 +189,18 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ocl-icd-libopencl1 clinfo \
     && mkdir -p /tmp/intel-ocl \
-    && curl -fsSL https://api.github.com/repos/intel/intel-graphics-compiler/releases/latest \
-       | jq -r '.assets[].browser_download_url' \
-       | grep -E '/intel-igc-(core|opencl)-2_[^/]+_amd64\.deb$' \
-       | xargs -n1 curl -fsSLO --output-dir /tmp/intel-ocl \
-    && curl -fsSL https://api.github.com/repos/intel/compute-runtime/releases/latest \
+    && NEO_JSON="$(curl -fsSL https://api.github.com/repos/intel/compute-runtime/releases/latest)" \
+    && echo "$NEO_JSON" \
        | jq -r '.assets[].browser_download_url' \
        | grep -E '/(intel-opencl-icd|libigdgmm12|libze-intel-gpu1)_[^/]+_amd64\.deb$' \
+       | xargs -n1 curl -fsSLO --output-dir /tmp/intel-ocl \
+    # NEO pins an exact IGC version range, so pull the IGC release its notes link
+    # to instead of intel-graphics-compiler's own (often newer) latest.
+    && IGC_TAG="$(echo "$NEO_JSON" | jq -r '.body' | grep -oE 'intel-graphics-compiler/releases/tag/[^ )]+' | head -n1 | sed 's#.*/##')" \
+    && test -n "$IGC_TAG" \
+    && curl -fsSL "https://api.github.com/repos/intel/intel-graphics-compiler/releases/tags/${IGC_TAG}" \
+       | jq -r '.assets[].browser_download_url' \
+       | grep -E '/intel-igc-(core|opencl)-2_[^/]+_amd64\.deb$' \
        | xargs -n1 curl -fsSLO --output-dir /tmp/intel-ocl \
     && apt-get install -y --no-install-recommends /tmp/intel-ocl/*.deb \
     && rm -rf /tmp/intel-ocl \
