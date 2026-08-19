@@ -154,7 +154,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
        wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
        libatomic1 ripgrep build-essential shellcheck sshpass \
        file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags zstd \
-       ffmpeg libva-utils intel-media-va-driver-non-free libmfx-gen1.2 libvpl2 intel-gpu-tools \
+       ffmpeg vainfo intel-media-va-driver-non-free libmfx-gen1.2 libvpl2 intel-gpu-tools \
     && mkdir -p -m 755 /etc/apt/keyrings \
     && wget -nv -O /etc/apt/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
