@@ -226,7 +226,10 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude" -o "$CODER_LIB/claude/claude" \
     && echo "$(curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/manifest.json" | jq -r '.platforms["linux-x64"].checksum')  $CODER_LIB/claude/claude" | sha256sum -c - \
     && chmod +x "$CODER_LIB/claude/claude" \
-    && uv --version && uvx --version && yq --version && difft --version && ruff --version && claude --version
+    && OPENCODE_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/anomalyco/opencode/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_TAG}/opencode-linux-x64.tar.gz" \
+       | tar -xz -C /usr/local/bin \
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version && claude --version && opencode --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
