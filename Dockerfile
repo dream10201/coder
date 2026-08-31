@@ -164,7 +164,7 @@ RUN sed -i -e 's|^# en_US.UTF-8 UTF-8|en_US.UTF-8 UTF-8|' \
     && apt-get remove nano -y \
     && apt-get install -y --no-install-recommends \
        bash-completion python3 python3-pip python3-venv pipx netcat-openbsd iputils-ping chromium fonts-noto-cjk \
-       wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates \
+       wget jq curl vim zip git unzip xz-utils pkg-config libssl-dev ca-certificates patchelf \
        libatomic1 ripgrep build-essential shellcheck sshpass \
        file 7zip fzf fd-find tree git-lfs cmake ninja-build clang clangd gdb universal-ctags zstd \
        ffmpeg vainfo intel-media-va-driver-non-free libmfx-gen1.2 libvpl2 intel-gpu-tools \
