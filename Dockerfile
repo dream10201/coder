@@ -241,6 +241,18 @@ COPY --from=builder /root/.gopath/bin /root/.gopath/bin
 RUN git config --global --add safe.directory "$FLUTTER_ROOT" \
     && npm config set registry https://registry.npmmirror.com/
 
+######################################################### jadx + apktool (need the copied Java toolchain) #########################################################
+RUN JADX_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/skylot/jadx/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/skylot/jadx/releases/download/${JADX_TAG}/jadx-${JADX_TAG#v}.zip" -o /tmp/jadx.zip \
+    && unzip -q /tmp/jadx.zip -d "$CODER_LIB/jadx" \
+    && rm -f /tmp/jadx.zip "$CODER_LIB/jadx"/bin/jadx-gui "$CODER_LIB/jadx"/bin/*.bat \
+    && ln -sf "$CODER_LIB/jadx/bin/jadx" /usr/local/bin/jadx \
+    && APKTOOL_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/iBotPeaches/Apktool/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/iBotPeaches/Apktool/releases/download/${APKTOOL_TAG}/apktool_${APKTOOL_TAG#v}.jar" -o /usr/local/bin/apktool.jar \
+    && curl -fsSL "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -o /usr/local/bin/apktool \
+    && chmod +x /usr/local/bin/apktool \
+    && jadx --version && apktool --version
+
 ######################################################### ast-grep (need the copied node toolchain) #########################################################
 RUN npm install -g @ast-grep/cli \
     && npm cache clean --force \
