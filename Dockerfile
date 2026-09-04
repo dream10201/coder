@@ -53,7 +53,7 @@ RUN wget -qO- "https://go.dev/dl/$(curl -s https://go.dev/dl/?mode=json | jq -r 
 # INSTALL_ANDROID=true installs the full Android app toolchain: cmdline-tools +
 # build-tools + platforms here, plus the Flutter SDK below. Default false keeps
 # only platform-tools (adb/fastboot) fetched directly from Google.
-ARG INSTALL_ANDROID=false
+ARG INSTALL_ANDROID=true
 RUN mkdir -p "$CODER_LIB/android" \
     && if [ "$INSTALL_ANDROID" != "true" ]; then \
          curl -fsSL https://dl.google.com/android/repository/platform-tools-latest-linux.zip -o /tmp/platform-tools.zip \
