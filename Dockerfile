@@ -253,6 +253,22 @@ RUN JADX_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.co
     && chmod +x /usr/local/bin/apktool \
     && jadx --version && apktool --version
 
+######################################################### Ghidra (needs the copied Java toolchain) #########################################################
+RUN GHIDRA_ZIP_URL="$(curl -fsSL https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/latest \
+       | jq -r '.assets[].browser_download_url' | grep -E '/ghidra_[^/]+_PUBLIC_[0-9]+\.zip$' | head -n1)" \
+    && test -n "$GHIDRA_ZIP_URL" \
+    && curl -fsSL "$GHIDRA_ZIP_URL" -o /tmp/ghidra.zip \
+    && unzip -q /tmp/ghidra.zip -d /tmp/ghidra \
+    && rm -f /tmp/ghidra.zip \
+    && mv /tmp/ghidra/ghidra_* "$CODER_LIB/ghidra" \
+    && rm -rf /tmp/ghidra \
+    && find "$CODER_LIB/ghidra" -name '*.bat' -delete \
+    && ln -sf "$CODER_LIB/ghidra/support/analyzeHeadless" /usr/local/bin/analyzeHeadless \
+    && ln -sf "$CODER_LIB/ghidra/ghidraRun" /usr/local/bin/ghidraRun \
+    && grep -q '^application.version=' "$CODER_LIB/ghidra/Ghidra/application.properties" \
+    && analyzeHeadless /tmp ghidra_smoke -deleteProject \
+    && rm -rf "$HOME/.config/ghidra" "$HOME/.cache/ghidra" /tmp/ghidra_smoke*
+
 ######################################################### ast-grep (need the copied node toolchain) #########################################################
 RUN npm install -g @ast-grep/cli \
     && npm cache clean --force \
