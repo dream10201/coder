@@ -271,8 +271,8 @@ RUN GHIDRA_ZIP_URL="$(curl -fsSL https://api.github.com/repos/NationalSecurityAg
     && ln -sf "$CODER_LIB/ghidra/support/analyzeHeadless" /usr/local/bin/analyzeHeadless \
     && ln -sf "$CODER_LIB/ghidra/ghidraRun" /usr/local/bin/ghidraRun \
     && grep -q '^application.version=' "$CODER_LIB/ghidra/Ghidra/application.properties" \
-    && analyzeHeadless /tmp ghidra_smoke -deleteProject \
-    && rm -rf "$HOME/.config/ghidra" "$HOME/.cache/ghidra" /tmp/ghidra_smoke*
+    && analyzeHeadless /tmp ghidra_smoke -import /bin/true -deleteProject \
+    && rm -rf "$HOME/.config/ghidra" "$HOME/.cache/ghidra" /tmp/ghidra_smoke* /var/tmp/root-ghidra
 
 ######################################################### ast-grep (need the copied node toolchain) #########################################################
 RUN npm install -g @ast-grep/cli \
