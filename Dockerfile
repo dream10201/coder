@@ -34,10 +34,15 @@ RUN apt-get update \
 RUN mkdir -p "$CODER_LIB"
 
 ######################################################### Java #########################################################
+# Adoptium lists a feature release before its GA build ships, so walk down to the newest one that has a binary.
 RUN mkdir -p "$JAVA_HOME" \
-    && JAVA_FEATURE_VERSION="$(curl -fsSL https://api.adoptium.net/v3/info/available_releases | jq -r '.most_recent_feature_release')" \
-    && curl -fsSL "https://api.adoptium.net/v3/binary/latest/${JAVA_FEATURE_VERSION}/ga/linux/x64/jdk/hotspot/normal/eclipse" \
-      | tar -xz -C "$JAVA_HOME" --strip-components=1
+    && JAVA_URL="" \
+    && for v in $(curl -fsSL https://api.adoptium.net/v3/info/available_releases | jq -r '.available_releases | reverse | .[]'); do \
+         u="https://api.adoptium.net/v3/binary/latest/${v}/ga/linux/x64/jdk/hotspot/normal/eclipse"; \
+         if curl -fsLI -o /dev/null "$u"; then JAVA_URL="$u"; break; fi; \
+       done \
+    && test -n "$JAVA_URL" \
+    && curl -fsSL "$JAVA_URL" | tar -xz -C "$JAVA_HOME" --strip-components=1
 
 ######################################################### Go #########################################################
 # Install Go and gopls, then keep only the gopls binary (drop module/build caches).
