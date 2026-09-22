@@ -221,7 +221,7 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_TAG}/yq_linux_amd64" -o /usr/local/bin/yq \
     && chmod +x /usr/local/bin/yq \
     && DIFFT_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/Wilfred/difftastic/releases/latest | sed 's#.*/##')" \
-    && curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_TAG}/difft-x86_64-unknown-linux-gnu.tar.gz" \
+    && curl -fsSL "https://github.com/Wilfred/difftastic/releases/download/${DIFFT_TAG}/difft-${DIFFT_TAG}-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin \
     && RUFF_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/ruff/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/ruff/releases/download/${RUFF_TAG}/ruff-x86_64-unknown-linux-gnu.tar.gz" \
