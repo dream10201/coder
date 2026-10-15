@@ -149,7 +149,7 @@ ENV HOME=/root \
     NODE_HOME=/usr/local/lib/node/current \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
-ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$CODER_LIB/claude:$PATH"
+ENV PATH="$JAVA_HOME/bin:$NODE_HOME/bin:$GOROOT/bin:$GOPATH/bin:$ANDROID_HOME/platform-tools:$ANDROID_CMDLINE_TOOLS_ROOT/bin:$FLUTTER_ROOT/bin:$CARGO_HOME/bin:$PATH"
 
 WORKDIR /root
 SHELL ["/bin/bash","-o","pipefail","-c"]
@@ -226,15 +226,10 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && RUFF_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/ruff/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/ruff/releases/download/${RUFF_TAG}/ruff-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin --strip-components=1 \
-    && mkdir -p "$CODER_LIB/claude" \
-    && CLAUDE_VERSION="$(curl -fsSL https://downloads.claude.ai/claude-code-releases/latest)" \
-    && curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/linux-x64/claude" -o "$CODER_LIB/claude/claude" \
-    && echo "$(curl -fsSL "https://downloads.claude.ai/claude-code-releases/${CLAUDE_VERSION}/manifest.json" | jq -r '.platforms["linux-x64"].checksum')  $CODER_LIB/claude/claude" | sha256sum -c - \
-    && chmod +x "$CODER_LIB/claude/claude" \
     && OPENCODE_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/anomalyco/opencode/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_TAG}/opencode-linux-x64.tar.gz" \
        | tar -xz -C /usr/local/bin \
-    && uv --version && uvx --version && yq --version && difft --version && ruff --version && claude --version && opencode --version
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version && opencode --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
@@ -288,6 +283,17 @@ RUN git clone --depth=1 https://github.com/dream10201/scrcpy_sidebar.git /tmp/sc
     && npx --yes @vscode/vsce package --out /tmp/scrcpy_sidebar.vsix \
     && code-server --install-extension /tmp/scrcpy_sidebar.vsix --extensions-dir /usr/lib/code-server/lib/vscode/extensions/ \
     && rm -rf /tmp/scrcpy_sidebar /tmp/scrcpy_sidebar.vsix "$HOME/.npm" "$HOME/.cache"
+
+######################################################### claude (from the code-server extension) #########################################################
+RUN cat <<'EOF' >/usr/local/bin/claude && chmod +x /usr/local/bin/claude
+#!/bin/sh
+bin="$(ls -d "${XDG_DATA_HOME:-$HOME/.local/share}"/code-server/extensions/anthropic.claude-code-*/resources/native-binary/claude 2>/dev/null | sort -V | tail -n1)"
+if [ -z "$bin" ] || [ ! -x "$bin" ]; then
+  echo "claude: anthropic.claude-code extension is not installed" >&2
+  exit 127
+fi
+exec "$bin" "$@"
+EOF
 
 ######################################################### Profile scripts #########################################################
 RUN cat <<'EOF' >/etc/profile.d/99-coder-shell.sh
@@ -347,7 +353,7 @@ export NODE_HOME
 if [ -z "${PATH:-}" ]; then
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 fi
-for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$CODER_LIB/claude" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
+for dir in "$JAVA_HOME/bin" "$NODE_HOME/bin" "$GOROOT/bin" "$GOPATH/bin" "$ANDROID_HOME/platform-tools" "$ANDROID_CMDLINE_TOOLS_ROOT/bin" "$FLUTTER_ROOT/bin" "$CARGO_HOME/bin" "$HOME/.opencode/bin" "$HOME/.local/bin"; do
   if [ -d "$dir" ]; then
     case ":$PATH:" in
       *":$dir:"*) ;;
