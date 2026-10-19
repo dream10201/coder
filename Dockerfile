@@ -213,7 +213,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 ######################################################### Extra CLI tools (latest release binaries) #########################################################
-# uv (Astral) + yq + difftastic + ruff: resolve the newest GitHub release tag, then fetch the binary.
+# uv (Astral) + yq + difftastic + ruff + radare2: resolve the newest GitHub release tag, then fetch the binary.
+# qiling pulls in unicorn and capstone.
 RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/uv/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_TAG}/uv-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin --strip-components=1 \
@@ -229,7 +230,13 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && OPENCODE_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/anomalyco/opencode/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/anomalyco/opencode/releases/download/${OPENCODE_TAG}/opencode-linux-x64.tar.gz" \
        | tar -xz -C /usr/local/bin \
-    && uv --version && uvx --version && yq --version && difft --version && ruff --version && opencode --version
+    && R2_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/radareorg/radare2/releases/latest | sed 's#.*/##')" \
+    && curl -fsSL "https://github.com/radareorg/radare2/releases/download/${R2_TAG}/radare2_${R2_TAG}_amd64.deb" -o /tmp/radare2.deb \
+    && dpkg -i /tmp/radare2.deb \
+    && rm -f /tmp/radare2.deb \
+    && pip install --no-cache-dir --break-system-packages qiling \
+    && uv --version && uvx --version && yq --version && difft --version && ruff --version && opencode --version \
+    && r2 -v && python3 -c 'import unicorn, capstone, qiling'
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
