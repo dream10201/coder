@@ -214,7 +214,7 @@ RUN apt-get update \
 
 ######################################################### Extra CLI tools (latest release binaries) #########################################################
 # uv (Astral) + yq + difftastic + ruff + radare2: resolve the newest GitHub release tag, then fetch the binary.
-# qiling pulls in unicorn and capstone.
+# qiling pulls in unicorn and capstone. ilspycmd ships as a native binary inside its linux-x64 NuGet package.
 RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/astral-sh/uv/releases/latest | sed 's#.*/##')" \
     && curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_TAG}/uv-x86_64-unknown-linux-gnu.tar.gz" \
        | tar -xz -C /usr/local/bin --strip-components=1 \
@@ -235,8 +235,13 @@ RUN UV_TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/
     && dpkg -i /tmp/radare2.deb \
     && rm -f /tmp/radare2.deb \
     && pip install --no-cache-dir --break-system-packages qiling \
+    && ILSPY_VER="$(curl -fsSL https://api.nuget.org/v3-flatcontainer/ilspycmd.linux-x64/index.json | jq -r '[.versions[] | select(contains("-") | not)] | last')" \
+    && curl -fsSL "https://api.nuget.org/v3-flatcontainer/ilspycmd.linux-x64/${ILSPY_VER}/ilspycmd.linux-x64.${ILSPY_VER}.nupkg" -o /tmp/ilspycmd.nupkg \
+    && unzip -q -j /tmp/ilspycmd.nupkg tools/any/linux-x64/ilspycmd -d /usr/local/bin \
+    && chmod +x /usr/local/bin/ilspycmd \
+    && rm -f /tmp/ilspycmd.nupkg \
     && uv --version && uvx --version && yq --version && difft --version && ruff --version && opencode --version \
-    && r2 -v && python3 -c 'import unicorn, capstone, qiling'
+    && r2 -v && python3 -c 'import unicorn, capstone, qiling' && ilspycmd --version
 
 # Pull in the prebuilt toolchains (clean trees only — no build/download caches).
 COPY --from=builder /env/lib /env/lib
